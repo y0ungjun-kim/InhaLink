@@ -1,13 +1,14 @@
 package com.inhalink.dto.response;
 
 import com.inhalink.domain.User;
+import com.inhalink.domain.enums.Gender;
 import lombok.Getter;
 
 @Getter
 public class UserProfileResponse {
 
     private String name;
-    private String gender;
+    private Gender gender;
     private String contact;
     private String domains;
     private String activities;

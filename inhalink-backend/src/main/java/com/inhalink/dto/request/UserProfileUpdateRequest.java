@@ -1,5 +1,6 @@
 package com.inhalink.dto.request;
 
+import com.inhalink.domain.enums.Gender;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,7 @@ public class UserProfileUpdateRequest {
     private String name;
 
     @NotBlank(message = "성별은 필수 입력 사항입니다.")
-    private String gender;
+    private Gender gender;
 
     @NotBlank(message = "연락처는 필수 입력 사항입니다.")
     private String contact;
