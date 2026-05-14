@@ -3,12 +3,12 @@ import { useState } from "react";
 function App() {
   const [step, setStep] = useState(1);
   const [verified, setVerified] = useState(false);
+  const [service, setService] = useState("");
 
   return (
     <div style={{ padding: "20px", width: "350px" }}>
       <h1>인하링크</h1>
 
-      {/* 시작 화면 */}
       {step === 1 && (
         <div>
           <button onClick={() => setStep(2)}>로그인</button>
@@ -17,23 +17,18 @@ function App() {
         </div>
       )}
 
-      {/* 로그인 화면 */}
       {step === 2 && (
         <>
           <h2>로그인 화면</h2>
           <hr />
-
           <label>아이디: <input type="text" /></label>
           <br /><br />
-
           <label>비밀번호: <input type="password" /></label>
           <br /><br />
-
           <button onClick={() => setStep(8)}>로그인</button>
         </>
       )}
 
-      {/* 회원가입 화면 */}
       {step === 3 && (
         <>
           <h2>회원가입 화면</h2>
@@ -43,13 +38,10 @@ function App() {
             <>
               <label>이메일: <input type="text" /></label>
               <br /><br />
-
               <button>인증번호발송</button>
               <br /><br />
-
               <label>인증번호: <input type="text" /></label>
               <br /><br />
-
               <button onClick={() => setVerified(true)}>인증 확인</button>
             </>
           )}
@@ -57,27 +49,20 @@ function App() {
           {verified && (
             <>
               <h3>계정 정보</h3>
-
               <label>아이디: <input type="text" /></label>
               <br /><br />
-
               <label>비밀번호: <input type="password" /></label>
               <br /><br />
 
               <h3>프로필 등록</h3>
-
               <label>이름: <input type="text" /></label>
               <br /><br />
-
               <label>학번: <input type="text" /></label>
               <br /><br />
-
               <label>학과: <input type="text" /></label>
               <br /><br />
-
               <label>관심분야: <input type="text" /></label>
               <br /><br />
-
               <label>대외활동 경험:</label>
               <br />
               <textarea rows="4" cols="30"></textarea>
@@ -97,27 +82,40 @@ function App() {
         </>
       )}
 
-      {/* 서비스 선택 화면 */}
       {step === 8 && (
         <>
           <h2>서비스 선택</h2>
           <hr />
 
-          <button onClick={() => setStep(9)}>밥친구</button>
+          <button
+            onClick={() => {
+              setService("meal");
+              setStep(12);
+            }}
+          >
+            밥친구
+          </button>
+
           <br /><br />
 
-          <button onClick={() => setStep(4)}>공모전</button>
+          <button
+            onClick={() => {
+              setService("contest");
+              setStep(4);
+            }}
+          >
+            공모전
+          </button>
         </>
       )}
 
-      {/* 공모전 메인 화면 */}
+      {/* 공모전 메인 */}
       {step === 4 && (
         <>
           <h2>공모전 메인 화면</h2>
           <hr />
 
           <h3>모집글 탐색</h3>
-
           <input type="text" placeholder="검색..." />
           <br /><br />
 
@@ -138,7 +136,6 @@ function App() {
           <br />
           <hr />
 
-          <button>탐색</button>
           <button onClick={() => setStep(5)}>작성</button>
           <button onClick={() => setStep(7)}>현황</button>
           <br /><br />
@@ -146,10 +143,9 @@ function App() {
         </>
       )}
 
-      {/* 공모전 모집글 작성 화면 */}
       {step === 5 && (
         <>
-          <h2>모집글 작성</h2>
+          <h2>공모전 모집글 작성</h2>
           <hr />
 
           <label>제목: <input type="text" /></label>
@@ -173,19 +169,16 @@ function App() {
           </button>
 
           <br /><br />
-
           <button onClick={() => setStep(4)}>취소</button>
         </>
       )}
 
-      {/* 공모전 모집글 상세 화면 */}
       {step === 6 && (
         <>
-          <h2>모집글 상세</h2>
+          <h2>공모전 모집글 상세</h2>
           <hr />
 
           <h3>캡스톤 팀원 모집!</h3>
-
           <p><b>작성자:</b> 컴공 3학년</p>
           <p><b>모집 인원:</b> 3/4명</p>
 
@@ -197,21 +190,17 @@ function App() {
           </p>
 
           <button>지원하기</button>
-
           <br /><br />
-
           <button onClick={() => setStep(4)}>뒤로가기</button>
         </>
       )}
 
-      {/* 공모전 모집 현황 화면 */}
       {step === 7 && (
         <>
-          <h2>모집 현황</h2>
+          <h2>공모전 모집 현황</h2>
           <hr />
 
           <h3>내가 올린 모집글</h3>
-
           <div>
             <h4>캡스톤 팀원 모집!</h4>
             <p>지원자 2명</p>
@@ -221,7 +210,6 @@ function App() {
           <hr />
 
           <h3>내가 지원한 모집글</h3>
-
           <div>
             <h4>알고리즘 스터디</h4>
             <p>상태: 대기중</p>
@@ -233,31 +221,47 @@ function App() {
           </div>
 
           <br />
-
           <button onClick={() => setStep(4)}>메인으로</button>
         </>
       )}
 
-      {/* 밥친구 선택 화면 */}
-      {step === 9 && (
+      {/* 밥친구 메인 */}
+      {step === 12 && (
         <>
-          <h2>밥친구</h2>
+          <h2>밥친구 메인 화면</h2>
           <hr />
 
-          <button onClick={() => setStep(10)}>밥친구 모집</button>
+          <h3>모집글 탐색</h3>
+          <input type="text" placeholder="검색..." />
           <br /><br />
 
-          <button onClick={() => setStep(11)}>밥친구 신청</button>
-          <br /><br />
+          <div>
+            <h4>학생식당 같이 먹을 사람!</h4>
+            <p>오늘 12시 · 학생식당 · 1/2명</p>
+            <button onClick={() => setStep(14)}>모집중</button>
+          </div>
 
-          <button onClick={() => setStep(8)}>뒤로가기</button>
+          <hr />
+
+          <div>
+            <h4>후문 라멘 먹을 사람</h4>
+            <p>오늘 6시 · 후문 · 2/4명</p>
+            <button onClick={() => setStep(14)}>모집중</button>
+          </div>
+
+          <br />
+          <hr />
+
+          <button onClick={() => setStep(13)}>작성</button>
+          <button onClick={() => setStep(15)}>현황</button>
+          <br /><br />
+          <button onClick={() => setStep(8)}>서비스 선택으로</button>
         </>
       )}
 
-      {/* 밥친구 모집 화면 */}
-      {step === 10 && (
+      {step === 13 && (
         <>
-          <h2>밥친구 모집</h2>
+          <h2>밥친구 모집글 작성</h2>
           <hr />
 
           <label>제목: <input type="text" /></label>
@@ -272,44 +276,76 @@ function App() {
           <label>모집 인원: <input type="number" /></label>
           <br /><br />
 
+          <label>내용:</label>
+          <br />
+          <textarea rows="5" cols="30"></textarea>
+          <br /><br />
+
           <button
             onClick={() => {
               alert("밥친구 모집글이 등록되었습니다!");
-              setStep(9);
+              setStep(12);
             }}
           >
             등록
           </button>
 
           <br /><br />
-
-          <button onClick={() => setStep(9)}>취소</button>
+          <button onClick={() => setStep(12)}>취소</button>
         </>
       )}
 
-      {/* 밥친구 신청 화면 */}
-      {step === 11 && (
+      {step === 14 && (
         <>
-          <h2>밥친구 신청</h2>
+          <h2>밥친구 모집글 상세</h2>
           <hr />
 
+          <h3>학생식당 같이 먹을 사람!</h3>
+          <p><b>작성자:</b> 컴공 2학년</p>
+          <p><b>장소:</b> 학생식당</p>
+          <p><b>시간:</b> 오늘 12시</p>
+          <p><b>모집 인원:</b> 1/2명</p>
+
+          <hr />
+
+          <p>
+            점심 같이 먹을 밥친구 구합니다.<br />
+            편하게 이야기하면서 먹을 사람 환영합니다!
+          </p>
+
+          <button>신청하기</button>
+          <br /><br />
+          <button onClick={() => setStep(12)}>뒤로가기</button>
+        </>
+      )}
+
+      {step === 15 && (
+        <>
+          <h2>밥친구 모집 현황</h2>
+          <hr />
+
+          <h3>내가 올린 모집글</h3>
           <div>
             <h4>학생식당 같이 먹을 사람!</h4>
-            <p>오늘 12시 · 학생식당</p>
-            <button>신청하기</button>
+            <p>신청자 1명</p>
+            <button>신청자 목록 보기</button>
           </div>
 
           <hr />
 
+          <h3>내가 신청한 모집글</h3>
           <div>
             <h4>후문 라멘 먹을 사람</h4>
-            <p>오늘 6시 · 후문</p>
-            <button>신청하기</button>
+            <p>상태: 대기중</p>
+          </div>
+
+          <div>
+            <h4>학식 저녁 같이 먹을 사람</h4>
+            <p>상태: 수락됨</p>
           </div>
 
           <br />
-
-          <button onClick={() => setStep(9)}>뒤로가기</button>
+          <button onClick={() => setStep(12)}>메인으로</button>
         </>
       )}
     </div>
