@@ -1,42 +1,269 @@
-.App {
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "맑은 고딕", sans-serif;
+  background: #faf7ff;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.logo {
+  text-align: center;
+  font-size: 46px;
+  color: #7c3aed;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+}
+
+.subtitle {
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 45px;
+}
+
+.box {
+  width: 360px;
+  margin: 0 auto;
+  background: white;
+  padding: 28px;
+  border-radius: 22px;
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.12);
+}
+
+.wide {
+  width: 600px;
+}
+
+.page-box {
+  width: 100%;
+}
+
+h2 {
+  margin-bottom: 22px;
+  color: #111827;
+}
+
+h3 {
+  margin-bottom: 10px;
+  color: #374151;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 14px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border: 2px solid #7c3aed;
+}
+
+button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  background: #7c3aed;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #6d28d9;
+}
+
+.back {
+  background: #a78bfa;
+}
+
+.back:hover {
+  background: #8b5cf6;
+}
+
+.start-box {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.start-icon {
+  font-size: 54px;
+  margin-bottom: 16px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.start-text {
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 22px;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.outline-btn {
+  background: white;
+  color: #7c3aed;
+  border: 1px solid #c4b5fd;
+}
+
+.outline-btn:hover {
+  background: #f3e8ff;
+}
+
+.service-wrap {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.service-card {
+  width: 320px;
+  background: white;
+  padding: 32px;
+  border-radius: 24px;
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.12);
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.service-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.25);
+}
+
+.service-card h2 {
+  margin-bottom: 10px;
+  font-size: 26px;
+}
+
+.service-card p {
+  color: #666;
+  line-height: 1.5;
+}
+
+.icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  font-size: 28px;
+  margin-bottom: 20px;
 }
 
-.App-link {
-  color: #61dafb;
+.green {
+  background: #f3e8ff;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.purple {
+  background: #ede9fe;
+}
+
+.simple-post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.simple-post {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 18px;
+  padding: 20px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.simple-post h3 {
+  font-size: 20px;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.simple-post p {
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.small-btn {
+  width: 90px;
+  padding: 10px;
+  margin-top: 0;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.post {
+  background: #faf5ff;
+  padding: 20px;
+  border-radius: 18px;
+  margin-top: 18px;
+  border: 1px solid #e9d5ff;
+}
+
+.post h3 {
+  margin-bottom: 8px;
+}
+
+.post p {
+  color: #666;
+  line-height: 1.5;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-row button {
+  margin-top: 0;
+}
+
+@media (max-width: 700px) {
+  .wide,
+  .box {
+    width: 100%;
   }
-  to {
-    transform: rotate(360deg);
-  }
-}
 
-* {
-  font-family: Arial, sans-serif;
+  .service-card {
+    width: 100%;
+  }
+
+  .logo {
+    font-size: 38px;
+  }
+
+  .simple-post {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .small-btn {
+    width: 100%;
+  }
 }
