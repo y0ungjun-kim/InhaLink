@@ -6,18 +6,23 @@ import lombok.Getter;
 @Getter
 public class UserProfileResponse {
 
+    private String studentId;
     private String name;
     private String gender;
     private String contact;
+    private String department;
     private String domains;
     private String activities;
+    private boolean profileComplete;
 
-    // Entity를 받아서 바로 DTO로 변환하는 생성자 (아주 편리합니다!)
     public UserProfileResponse(User user) {
+        this.studentId = user.getStudentId();
         this.name = user.getName();
         this.gender = user.getGender();
         this.contact = user.getContact();
+        this.department = user.getDepartment();
         this.domains = user.getDomains();
         this.activities = user.getActivities();
+        this.profileComplete = user.isProfileComplete();
     }
 }
