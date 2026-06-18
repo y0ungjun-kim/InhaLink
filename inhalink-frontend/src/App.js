@@ -354,21 +354,88 @@ function ProfileEditBox() {
 
 // ── 홈 (서비스 선택) ──────────────────────────────────────
 function HomePage() {
-  const { loadPosts } = useUser();
+  const { loadPosts, setCurrentUser } = useUser();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const logout = () => {
+    clearToken();
+    setCurrentUser(null);
+    navigate("/");
+  };
+
   return (
-    <div className="service-wrap">
-      <div className="service-card" onClick={() => navigate("/meal")}>
-        <div className="icon green">👥</div>
-        <h2>밥친구 찾기</h2>
-        <p>같이 식사할 친구를 찾아보세요</p>
+    <>
+      <div className="main-top">
+        <button
+          className="hamburger"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          ☰
+        </button>
       </div>
-      <div className="service-card" onClick={() => { loadPosts(); navigate("/posts"); }}>
-        <div className="icon purple">🏆</div>
-        <h2>팀플·공모전</h2>
-        <p>함께 도전할 팀원을 구해요</p>
+
+      {menuOpen && (
+        <>
+          <div
+            className="menu-bg"
+            onClick={() => setMenuOpen(false)}
+          ></div>
+
+          <div className="side-menu">
+            <h2 className="side-menu-title">InhaLink</h2>
+
+            <p onClick={() => navigate("/home")}>
+              🏠 홈
+            </p>
+
+            <p onClick={() => navigate("/profile/edit")}>
+              👤 프로필 수정
+            </p>
+
+            <p onClick={() => alert("아직 준비 중입니다.")}>
+              📋 내 모집글
+            </p>
+
+            <p onClick={logout}>
+              🚪 로그아웃
+            </p>
+          </div>
+        </>
+      )}
+
+      <div className="service-wrap">
+        <div
+          className="service-card"
+          onClick={() => navigate("/meal")}
+        >
+          <div className="icon green">👥</div>
+          <h2>밥친구 찾기</h2>
+          <p>같이 식사할 친구를 찾아보세요</p>
+        </div>
+
+        <div
+          className="service-card"
+          onClick={() => {
+            loadPosts();
+            navigate("/posts");
+          }}
+        >
+          <div className="icon purple">🏆</div>
+          <h2>팀플·공모전</h2>
+          <p>함께 도전할 팀원을 구해요</p>
+        </div>
+
+        <div
+          className="service-card"
+          onClick={() => navigate("/matching")}
+        >
+          <div className="icon purple">⚡</div>
+          <h2>1:1 즉시 매칭</h2>
+          <p>지금 접속한 학우와 바로 연결돼요</p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
