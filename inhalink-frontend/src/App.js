@@ -80,6 +80,7 @@ function App() {
               <Route path="/meal/status" element={<RequireAuth><StatusPage title="밥친구 모집 현황" backPath="/meal" /></RequireAuth>} />
               <Route path="/matching" element={<RequireAuth><MatchingWaitPage /></RequireAuth>} />
               <Route path="/matching/result" element={<RequireAuth><MatchingResultPage /></RequireAuth>} />
+              <Route path="/my-posts" element={<RequireAuth><MyPostsPage /></RequireAuth>} />
               <Route path="/chat" element={<RequireAuth><ChatListPage /></RequireAuth>} />
               <Route path="/chat/:roomId" element={<RequireAuth><ChatRoomPage /></RequireAuth>} />
               <Route path="*" element={<Navigate to="/" replace />} />
@@ -397,7 +398,7 @@ function HomePage() {
               👤 프로필 수정
             </p>
 
-            <p onClick={() => alert("아직 준비 중입니다.")}>
+            <p onClick={() => { setMenuOpen(false); navigate("/my-posts"); }}>
               📋 내 모집글
             </p>
 
@@ -555,11 +556,23 @@ function TeamWritePage() {
 
 // ── 팀플·공모전 상세 ──────────────────────────────────────
 function TeamDetailPage() {
-  const { selectedPost } = useUser();
+  const { selectedPost, currentUser } = useUser();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const post = selectedPost;
+  const [post, setPost] = useState(selectedPost || null);
+  const [loading, setLoading] = useState(!selectedPost);
 
-  if (!post) { navigate("/posts"); return null; }
+  useEffect(() => {
+    if (!selectedPost && id) {
+      api.getPost(id)
+        .then(setPost)
+        .catch(() => navigate("/posts"))
+        .finally(() => setLoading(false));
+    }
+  }, [id, selectedPost, navigate]);
+
+  if (loading) return <div className="box wide"><p style={{ color: "#6b7280" }}>불러오는 중...</p></div>;
+  if (!post) return null;
 
   return (
     <div className="box wide">
@@ -575,9 +588,9 @@ function TeamDetailPage() {
         {post.preferredQualifications && <p>우대사항: {post.preferredQualifications}</p>}
         <p style={{ marginTop: "12px" }}>{post.content}</p>
         {post.message && <p style={{ color: "#6b7280" }}>{post.message}</p>}
-        <button>지원하기</button>
+        {currentUser?.studentId !== post.writerStudentId && <button>지원하기</button>}
       </div>
-      <button className="back" onClick={() => navigate("/posts")}>뒤로가기</button>
+      <button className="back" onClick={() => navigate(-1)}>뒤로가기</button>
     </div>
   );
 }
@@ -737,6 +750,46 @@ function StatusPage({ title, backPath }) {
         <p>상태: 대기중</p>
       </div>
       <button className="back" onClick={() => navigate(backPath)}>메인으로</button>
+    </div>
+  );
+}
+
+// ── 내 모집글 ─────────────────────────────────────────────
+function MyPostsPage() {
+  const { currentUser } = useUser();
+  const navigate = useNavigate();
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getPosts()
+      .then((all) => setPosts(all.filter((p) => p.writerStudentId === currentUser.studentId)))
+      .catch(() => setPosts([]))
+      .finally(() => setLoading(false));
+  }, [currentUser.studentId]);
+
+  return (
+    <div className="box wide page-box">
+      <h2>내 모집글</h2>
+      {loading && <p style={{ color: "#6b7280", fontSize: "14px" }}>불러오는 중...</p>}
+      {!loading && posts.length === 0 && (
+        <p style={{ color: "#6b7280", fontSize: "14px", padding: "12px 0" }}>작성한 모집글이 없습니다.</p>
+      )}
+      <div className="simple-post-list">
+        {posts.map((post) => (
+          <div className="simple-post" key={post.id} onClick={() => navigate(`/posts/${post.id}`)} style={{ cursor: "pointer" }}>
+            <div>
+              <span className="post-tag">{post.categoryDescription}</span>
+              <h3>{post.title}</h3>
+              <p>{post.projectName} · {post.statusDescription}</p>
+              <p style={{ fontSize: "12px", color: "#9ca3af" }}>
+                마감 {post.deadline ? new Date(post.deadline).toLocaleDateString("ko-KR") : "-"}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button className="back" onClick={() => navigate("/home")}>홈으로</button>
     </div>
   );
 }
