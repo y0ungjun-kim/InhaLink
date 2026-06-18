@@ -1,23 +1,18 @@
 package com.inhalink.dto.request;
 
 import com.inhalink.domain.enums.Gender;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 마이페이지 수정용 - 보낸 필드만 업데이트 (부분 업데이트)
 @Getter
 @NoArgsConstructor
 public class UserProfileUpdateRequest {
 
-    @NotBlank(message = "이름은 필수 입력 사항입니다.")
     private String name;
-
-    @NotBlank(message = "성별은 필수 입력 사항입니다.")
     private Gender gender;
-
-    @NotBlank(message = "연락처는 필수 입력 사항입니다.")
     private String contact;
-
+    private String department;
     private String domains;
     private String activities;
 }
