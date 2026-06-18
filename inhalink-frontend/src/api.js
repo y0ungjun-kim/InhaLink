@@ -65,6 +65,12 @@ export const api = {
   createPost: (studentId, body) =>
     request("POST", `/posts?studentId=${studentId}`, body),
 
+  // 채팅
+  getMyChatRooms: () =>
+    request("GET", "/chat/rooms"),
+  getChatMessages: (roomId) =>
+    request("GET", `/chat/rooms/${roomId}/messages`),
+
   // 즉시 매칭
   joinMatching: (studentId) =>
     request("POST", `/matching?studentId=${studentId}`),
