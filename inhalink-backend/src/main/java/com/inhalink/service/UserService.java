@@ -15,12 +15,18 @@ import com.inhalink.dto.request.SignupRequest;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Transactional
     public void signUp(SignupRequest request) {
-        // 1. 중복 체크
+        // 1. 이메일 인증 여부 확인
+        if (!emailService.isVerified(request.getEmail())) {
+            throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
+        }
+
+        // 2. 중복 체크
         validateDuplicateUser(request);
-        // 2. 암호화 및 엔티티 생성
+        // 3. 암호화 및 엔티티 생성
         User user = User.builder()
                 .studentId(request.getStudentId())
                 .email(request.getEmail())

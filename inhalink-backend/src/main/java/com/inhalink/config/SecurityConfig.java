@@ -22,6 +22,7 @@ public class SecurityConfig {
         http
                 // 1. CSRF 보안 비활성화 (REST API이므로 불필요)
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configure(http))
 
                 // 2. HTTP 요청에 대한 권한 설정
                 .authorizeHttpRequests(auth -> auth
