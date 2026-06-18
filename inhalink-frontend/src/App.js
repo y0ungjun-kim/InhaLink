@@ -1,6 +1,8 @@
 import "./App.css";
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { api, saveToken, clearToken } from "./api";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import {
   BrowserRouter,
   Routes,
@@ -78,6 +80,8 @@ function App() {
               <Route path="/meal/status" element={<RequireAuth><StatusPage title="밥친구 모집 현황" backPath="/meal" /></RequireAuth>} />
               <Route path="/matching" element={<RequireAuth><MatchingWaitPage /></RequireAuth>} />
               <Route path="/matching/result" element={<RequireAuth><MatchingResultPage /></RequireAuth>} />
+              <Route path="/chat" element={<RequireAuth><ChatListPage /></RequireAuth>} />
+              <Route path="/chat/:roomId" element={<RequireAuth><ChatRoomPage /></RequireAuth>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
@@ -733,6 +737,142 @@ function StatusPage({ title, backPath }) {
         <p>상태: 대기중</p>
       </div>
       <button className="back" onClick={() => navigate(backPath)}>메인으로</button>
+    </div>
+  );
+}
+
+// ── 채팅방 목록 ───────────────────────────────────────────
+function ChatListPage() {
+  const navigate = useNavigate();
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getMyChatRooms()
+      .then(setRooms)
+      .catch(() => setRooms([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="box wide page-box">
+      <h2>채팅</h2>
+      {loading && <p style={{ color: "#6b7280", fontSize: "14px" }}>불러오는 중...</p>}
+      {!loading && rooms.length === 0 && (
+        <p style={{ color: "#6b7280", fontSize: "14px", padding: "12px 0" }}>참여 중인 채팅방이 없습니다.</p>
+      )}
+      <div className="simple-post-list">
+        {rooms.map((room) => (
+          <div className="simple-post" key={room.id} onClick={() => navigate(`/chat/${room.id}`)} style={{ cursor: "pointer" }}>
+            <div>
+              <h3>{room.name}</h3>
+              <p>{room.memberNames.join(", ")}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button className="back" onClick={() => navigate("/home")}>홈으로</button>
+    </div>
+  );
+}
+
+// ── 채팅방 ────────────────────────────────────────────────
+function ChatRoomPage() {
+  const { currentUser } = useUser();
+  const { roomId } = useParams();
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [connected, setConnected] = useState(false);
+  const clientRef = useRef(null);
+  const bottomRef = useRef(null);
+  const navigate = useNavigate();
+
+  // 이전 메시지 로드
+  useEffect(() => {
+    api.getChatMessages(roomId).then(setMessages).catch(() => {});
+  }, [roomId]);
+
+  // WebSocket 연결
+  useEffect(() => {
+    const client = new Client({
+      webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+      onConnect: () => {
+        setConnected(true);
+        client.subscribe(`/topic/chat/${roomId}`, (frame) => {
+          const msg = JSON.parse(frame.body);
+          setMessages((prev) => [...prev, msg]);
+        });
+      },
+      onDisconnect: () => setConnected(false),
+    });
+    client.activate();
+    clientRef.current = client;
+    return () => client.deactivate();
+  }, [roomId]);
+
+  // 새 메시지 올 때 스크롤 하단 이동
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = () => {
+    if (!input.trim() || !connected) return;
+    clientRef.current.publish({
+      destination: `/app/chat/${roomId}`,
+      body: JSON.stringify({ senderStudentId: currentUser.studentId, content: input }),
+    });
+    setInput("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  };
+
+  return (
+    <div className="box wide" style={{ display: "flex", flexDirection: "column", height: "80vh" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+        <button className="back" onClick={() => navigate("/chat")} style={{ margin: 0 }}>←</button>
+        <h2 style={{ margin: 0 }}>채팅</h2>
+        <span style={{ fontSize: "12px", color: connected ? "#10b981" : "#e24b4a", marginLeft: "auto" }}>
+          {connected ? "● 연결됨" : "● 연결 중..."}
+        </span>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
+        {messages.map((msg, i) => {
+          const isMine = msg.senderStudentId === currentUser.studentId;
+          return (
+            <div key={msg.id || i} style={{ display: "flex", flexDirection: "column", alignItems: isMine ? "flex-end" : "flex-start" }}>
+              {!isMine && <span style={{ fontSize: "12px", color: "#6b7280", marginBottom: "2px" }}>{msg.senderName}</span>}
+              <div style={{
+                maxWidth: "70%", padding: "8px 12px", borderRadius: "12px",
+                background: isMine ? "#6c63ff" : "#f3f4f6",
+                color: isMine ? "#fff" : "#111",
+                fontSize: "14px",
+              }}>
+                {msg.content}
+              </div>
+              <span style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>
+                {msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : ""}
+              </span>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+        <input
+          style={{ flex: 1, padding: "10px 14px", borderRadius: "12px", border: "1px solid #ddd", fontSize: "14px" }}
+          placeholder="메시지를 입력하세요"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <button onClick={sendMessage} disabled={!connected} style={{ padding: "10px 18px", borderRadius: "12px", background: "#6c63ff", color: "#fff", border: "none", cursor: "pointer", fontSize: "14px" }}>
+          전송
+        </button>
+      </div>
     </div>
   );
 }
