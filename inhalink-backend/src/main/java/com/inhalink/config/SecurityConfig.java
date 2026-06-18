@@ -26,14 +26,8 @@ public class SecurityConfig {
 
                 // 2. HTTP 요청에 대한 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        // 회원가입 및 이메일 인증 API는 로그인 없이 허용
-                        .requestMatchers("/api/users/signup", "/api/emails/**").permitAll()
-
-                        // Swagger 문서 허용 (테스트용)
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-
-                        // 그 외 모든 요청은 인증 필요
-                        .anyRequest().authenticated()
+                        // JWT 미구현 상태에서 모든 API 임시 허용 (JWT 도입 후 제거)
+                        .anyRequest().permitAll()
                 );
 
         return http.build();
