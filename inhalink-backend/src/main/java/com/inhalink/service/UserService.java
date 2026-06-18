@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.inhalink.dto.request.SignupRequest;
+import com.inhalink.dto.request.LoginRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -92,5 +93,15 @@ public class UserService {
     public User getProfile(String studentId) {
         return userRepository.findById(studentId)
                 .orElseThrow(UserNotFoundException::new);
+    }
+
+    @Transactional(readOnly = true)
+    public User login(LoginRequest request) {
+        User user = userRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new IllegalArgumentException("학번 또는 비밀번호가 올바르지 않습니다."));
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("학번 또는 비밀번호가 올바르지 않습니다.");
+        }
+        return user;
     }
 }

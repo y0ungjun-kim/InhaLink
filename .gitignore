@@ -35,3 +35,6 @@ replay_pid*
 
 # VS Code
 .vscode/
+
+# Secret config (DB password, SMTP credentials, etc.)
+**/application-secret.yml

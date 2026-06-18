@@ -1,15 +1,50 @@
 import "./App.css";
-import { useState, useEffect, useRef } from "react";
-import { api } from "./api";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
+import { api, saveToken, clearToken } from "./api";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length < 4) return digits;
+  if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+// ── 전역 사용자 상태 Context ──────────────────────────────
+const UserContext = createContext(null);
+function useUser() { return useContext(UserContext); }
+
+// ── 로그인 필요 라우트 가드 ───────────────────────────────
+function RequireAuth({ children }) {
+  const { currentUser } = useUser();
+  if (!currentUser) return <Navigate to="/" replace />;
+  return children;
+}
+
+// ── 앱 루트 ──────────────────────────────────────────────
 function App() {
-  const [step, setStep] = useState(1);
+  const [currentUser, setCurrentUser] = useState(null);
   const [verified, setVerified] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); // { studentId, name }
+  const [verifiedEmail, setVerifiedEmail] = useState("");
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
 
-  // 팀플·공모전 목록 진입 시 API에서 불러옴
+  // 새로고침 시 토큰으로 로그인 상태 복원
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token || currentUser) return;
+    api.getMe().then((profile) => {
+      setCurrentUser({ studentId: profile.studentId, name: profile.name, gender: profile.gender || "MALE", contact: formatPhone(profile.contact || "") });
+    }).catch(() => clearToken());
+  }, []);
+
   const loadPosts = async () => {
     try {
       const data = await api.getPosts();
@@ -20,166 +55,59 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <div className="container">
-        <h1 className="logo">InhaLink</h1>
-        <p className="subtitle">인하대학교 학생 매칭 플랫폼</p>
-
-        {step === 1 && (
-          <div className="box start-box">
-            <div className="start-icon">🔗</div>
-            <h2>인하링크에 오신 걸 환영합니다</h2>
-            <p className="start-text">
-              밥친구부터 공모전 팀원까지<br />
-              인하대 학생들을 연결해주는 플랫폼
-            </p>
-            <button onClick={() => setStep(2)}>로그인</button>
-            <button className="outline-btn" onClick={() => setStep(3)}>
-              회원가입
-            </button>
+    <UserContext.Provider value={{ currentUser, setCurrentUser, posts, setPosts, selectedPost, setSelectedPost, loadPosts, verified, setVerified, verifiedEmail, setVerifiedEmail }}>
+      <BrowserRouter>
+        <div className="app">
+          <div className="container">
+            <h1 className="logo">InhaLink</h1>
+            <p className="subtitle">인하대학교 학생 매칭 플랫폼</p>
+            <Routes>
+              <Route path="/" element={<StartPage />} />
+              <Route path="/login" element={<LoginBox />} />
+              <Route path="/signup" element={<SignupBox />} />
+              <Route path="/profile/create" element={<RequireAuth><ProfileCreateBox /></RequireAuth>} />
+              <Route path="/profile/edit" element={<RequireAuth><ProfileEditBox /></RequireAuth>} />
+              <Route path="/home" element={<RequireAuth><HomePage /></RequireAuth>} />
+              <Route path="/posts" element={<RequireAuth><TeamMainPage /></RequireAuth>} />
+              <Route path="/posts/write" element={<RequireAuth><TeamWritePage /></RequireAuth>} />
+              <Route path="/posts/:id" element={<RequireAuth><TeamDetailPage /></RequireAuth>} />
+              <Route path="/posts/status" element={<RequireAuth><StatusPage title="공모전 모집 현황" backPath="/posts" /></RequireAuth>} />
+              <Route path="/meal" element={<RequireAuth><MealPage /></RequireAuth>} />
+              <Route path="/meal/write" element={<RequireAuth><WritePage title="밥친구 모집글 작성" alertText="밥친구 모집글이 등록되었습니다!" backPath="/meal" /></RequireAuth>} />
+              <Route path="/meal/detail" element={<RequireAuth><DetailPage title="밥친구 모집글 상세" postTitle="학생식당 같이 먹을 사람!" info={["작성자: 컴공 2학년", "장소: 학생식당", "시간: 오늘 12시", "모집 인원: 1/2명"]} content="점심 같이 먹을 밥친구 구합니다." buttonText="신청하기" backPath="/meal" /></RequireAuth>} />
+              <Route path="/meal/status" element={<RequireAuth><StatusPage title="밥친구 모집 현황" backPath="/meal" /></RequireAuth>} />
+              <Route path="/matching" element={<RequireAuth><MatchingWaitPage /></RequireAuth>} />
+              <Route path="/matching/result" element={<RequireAuth><MatchingResultPage /></RequireAuth>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </div>
-        )}
+        </div>
+      </BrowserRouter>
+    </UserContext.Provider>
+  );
+}
 
-        {step === 2 && (
-          <LoginBox
-            setStep={setStep}
-            setCurrentUser={setCurrentUser}
-          />
-        )}
-
-        {step === 3 && (
-          <SignupBox
-            verified={verified}
-            setVerified={setVerified}
-            setStep={setStep}
-          />
-        )}
-
-        {/* 최초 프로필 작성 (로그인 후 profileComplete=false 일 때) */}
-        {step === 9 && currentUser && (
-          <ProfileCreateBox
-            studentId={currentUser.studentId}
-            setCurrentUser={setCurrentUser}
-            setStep={setStep}
-          />
-        )}
-
-        {/* 마이페이지 프로필 수정 */}
-        {step === 10 && currentUser && (
-          <ProfileEditBox
-            studentId={currentUser.studentId}
-            setStep={setStep}
-          />
-        )}
-
-        {step === 8 && (
-          <div className="service-wrap">
-            <div className="service-card" onClick={() => setStep(12)}>
-              <div className="icon green">👥</div>
-              <h2>밥친구 찾기</h2>
-              <p>같이 식사할 친구를 찾아보세요</p>
-            </div>
-            <div className="service-card" onClick={() => { loadPosts(); setStep(4); }}>
-              <div className="icon purple">🏆</div>
-              <h2>팀플·공모전</h2>
-              <p>함께 도전할 팀원을 구해요</p>
-            </div>
-            <div className="service-card" onClick={() => setStep(20)}>
-              <div className="icon green">⚡</div>
-              <h2>즉시 매칭</h2>
-              <p>지금 바로 인하대 학우와 연결돼요</p>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <TeamMainPage
-            posts={posts}
-            setSelectedPost={setSelectedPost}
-            setStep={setStep}
-          />
-        )}
-
-        {step === 5 && currentUser && (
-          <TeamWritePage
-            studentId={currentUser.studentId}
-            setStep={setStep}
-            reloadPosts={loadPosts}
-          />
-        )}
-
-        {step === 6 && selectedPost && (
-          <TeamDetailPage
-            post={selectedPost}
-            setStep={setStep}
-          />
-        )}
-
-        {step === 7 && (
-          <StatusPage title="공모전 모집 현황" backStep={4} setStep={setStep} />
-        )}
-
-        {step === 12 && (
-          <MainPage
-            title="밥친구"
-            posts={[
-              ["학생식당 같이 먹을 사람!", "오늘 12시 · 학생식당 · 1/2명"],
-              ["후문 라멘 먹을 사람", "오늘 6시 · 후문 · 2/4명"],
-            ]}
-            detailStep={14}
-            writeStep={13}
-            statusStep={15}
-            backStep={8}
-            setStep={setStep}
-          />
-        )}
-
-        {step === 13 && (
-          <WritePage
-            title="밥친구 모집글 작성"
-            alertText="밥친구 모집글이 등록되었습니다!"
-            backStep={12}
-            setStep={setStep}
-          />
-        )}
-
-        {step === 14 && (
-          <DetailPage
-            title="밥친구 모집글 상세"
-            postTitle="학생식당 같이 먹을 사람!"
-            info={["작성자: 컴공 2학년", "장소: 학생식당", "시간: 오늘 12시", "모집 인원: 1/2명"]}
-            content="점심 같이 먹을 밥친구 구합니다. 편하게 이야기하면서 먹을 사람 환영합니다!"
-            buttonText="신청하기"
-            backStep={12}
-            setStep={setStep}
-          />
-        )}
-
-        {step === 15 && (
-          <StatusPage title="밥친구 모집 현황" backStep={12} setStep={setStep} />
-        )}
-
-        {/* 즉시 매칭 대기 화면 */}
-        {step === 20 && currentUser && (
-          <MatchingWaitPage
-            studentId={currentUser.studentId}
-            setStep={setStep}
-          />
-        )}
-
-        {/* 즉시 매칭 완료 화면 */}
-        {step === 21 && (
-          <MatchingResultPage
-            setStep={setStep}
-          />
-        )}
-      </div>
+// ── 시작 화면 ─────────────────────────────────────────────
+function StartPage() {
+  const navigate = useNavigate();
+  return (
+    <div className="box start-box">
+      <div className="start-icon">🔗</div>
+      <h2>인하링크에 오신 걸 환영합니다</h2>
+      <p className="start-text">
+        밥친구부터 공모전 팀원까지<br />
+        인하대 학생들을 연결해주는 플랫폼
+      </p>
+      <button onClick={() => navigate("/login")}>로그인</button>
+      <button className="outline-btn" onClick={() => navigate("/signup")}>회원가입</button>
     </div>
   );
 }
 
-// ── 로그인 ──────────────────────────────────────────────
-function LoginBox({ setStep, setCurrentUser }) {
+// ── 로그인 ────────────────────────────────────────────────
+function LoginBox() {
+  const { setCurrentUser } = useUser();
+  const navigate = useNavigate();
   const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -193,12 +121,14 @@ function LoginBox({ setStep, setCurrentUser }) {
     setLoading(true);
     setError("");
     try {
-      const profile = await api.getProfile(studentId);
-      setCurrentUser({ studentId, name: profile.name });
+      const data = await api.login(studentId, password);
+      saveToken(data.token);
+      const profile = data.profile;
+      setCurrentUser({ studentId: profile.studentId, name: profile.name, gender: profile.gender || "MALE", contact: formatPhone(profile.contact || "") });
       if (!profile.profileComplete) {
-        setStep(9); // 최초 프로필 작성
+        navigate("/profile/create");
       } else {
-        setStep(8);
+        navigate("/home");
       }
     } catch {
       setError("학번 또는 비밀번호가 올바르지 않습니다.");
@@ -210,31 +140,21 @@ function LoginBox({ setStep, setCurrentUser }) {
   return (
     <div className="box">
       <h2>로그인</h2>
-      <input
-        type="text"
-        placeholder="학번"
-        value={studentId}
-        onChange={(e) => setStudentId(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="비밀번호"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      <input type="text" placeholder="학번" value={studentId} onChange={(e) => setStudentId(e.target.value)} />
+      <input type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} />
       {error && <p style={{ color: "#e24b4a", fontSize: "13px", margin: "4px 0" }}>{error}</p>}
-      <button onClick={handleLogin} disabled={loading}>
-        {loading ? "확인 중..." : "로그인"}
-      </button>
+      <button onClick={handleLogin} disabled={loading}>{loading ? "확인 중..." : "로그인"}</button>
+      <button className="back" onClick={() => navigate("/")}>뒤로가기</button>
     </div>
   );
 }
 
-// ── 회원가입 ─────────────────────────────────────────────
-function SignupBox({ verified, setVerified, setStep }) {
+// ── 회원가입 ──────────────────────────────────────────────
+function SignupBox() {
+  const { verified, setVerified, verifiedEmail, setVerifiedEmail } = useUser();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [signupStudentId, setSignupStudentId] = useState("");
@@ -245,12 +165,16 @@ function SignupBox({ verified, setVerified, setStep }) {
 
   const handleSendCode = async () => {
     if (!email.trim()) { setError("이메일을 입력해주세요."); return; }
+    if (!email.endsWith("@inha.ac.kr") && !email.endsWith("@inha.edu")) {
+      setError("인하대학교 이메일(@inha.ac.kr 또는 @inha.edu)만 사용 가능합니다.");
+      return;
+    }
     setLoading(true); setError("");
     try {
       await api.sendCode(email);
       alert("인증번호가 발송되었습니다.");
     } catch (e) {
-      setError(e?.email || e?.message || "이메일 발송에 실패했습니다.");
+      setError(e?.message || "이메일 발송에 실패했습니다.");
     } finally { setLoading(false); }
   };
 
@@ -260,6 +184,7 @@ function SignupBox({ verified, setVerified, setStep }) {
     try {
       const result = await api.verifyCode(email, code);
       if (result === true) {
+        setVerifiedEmail(email);
         setVerified(true);
         setError("");
       } else {
@@ -271,23 +196,17 @@ function SignupBox({ verified, setVerified, setStep }) {
   };
 
   const handleSignup = async () => {
-    if (!studentId.trim() || !password.trim() || !name.trim() || !signupStudentId.trim() || !gender || !contact.trim()) {
+    if (!signupStudentId.trim() || !password.trim() || !name.trim() || !gender || !contact.trim()) {
       setError("모든 필수 항목을 입력해주세요.");
       return;
     }
     setLoading(true); setError("");
     try {
-      await api.signup({
-        email,
-        password,
-        name,
-        studentId: signupStudentId,
-        gender,
-        contact,
-      });
+      await api.signup({ email: verifiedEmail, password, name, studentId: signupStudentId, gender, contact });
       alert("회원가입이 완료되었습니다!");
       setVerified(false);
-      setStep(1);
+      setVerifiedEmail("");
+      navigate("/login");
     } catch (e) {
       const msgs = Object.values(e || {}).join(" / ");
       setError(msgs || "회원가입에 실패했습니다.");
@@ -318,22 +237,26 @@ function SignupBox({ verified, setVerified, setStep }) {
             <option value="MALE">남성</option>
             <option value="FEMALE">여성</option>
           </select>
-          <input type="text" placeholder="연락처 (010-xxxx-xxxx)" value={contact} onChange={(e) => setContact(e.target.value)} />
+          <input type="text" placeholder="연락처 (010-xxxx-xxxx)" value={contact} onChange={(e) => setContact(formatPhone(e.target.value))} />
         </>
       )}
       {error && <p style={{ color: "#e24b4a", fontSize: "13px", margin: "4px 0" }}>{error}</p>}
-      {verified && (
-        <button onClick={handleSignup} disabled={loading}>
-          {loading ? "처리 중..." : "회원가입 완료"}
-        </button>
-      )}
+      {verified && <button onClick={handleSignup} disabled={loading}>{loading ? "처리 중..." : "회원가입 완료"}</button>}
+      <button className="back" onClick={() => navigate("/")}>뒤로가기</button>
     </div>
   );
 }
 
-// ── 최초 프로필 작성 ─────────────────────────────────────
-function ProfileCreateBox({ studentId, setCurrentUser, setStep }) {
-  const [form, setForm] = useState({ name: "", gender: "MALE", contact: "", department: "", domains: "", activities: "" });
+// ── 최초 프로필 작성 ──────────────────────────────────────
+function ProfileCreateBox() {
+  const { currentUser, setCurrentUser } = useUser();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: currentUser?.name || "",
+    gender: currentUser?.gender || "MALE",
+    contact: formatPhone(currentUser?.contact || ""),
+    department: "", domains: "", activities: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -347,9 +270,9 @@ function ProfileCreateBox({ studentId, setCurrentUser, setStep }) {
     }
     setLoading(true); setError("");
     try {
-      const updated = await api.createProfile(studentId, form);
-      setCurrentUser({ studentId, name: updated.name });
-      setStep(8);
+      const updated = await api.createProfile(currentUser.studentId, form);
+      setCurrentUser({ ...currentUser, name: updated.name });
+      navigate("/home");
     } catch (e) {
       const msgs = Object.values(e || {}).join(" / ");
       setError(msgs || "프로필 작성에 실패했습니다.");
@@ -365,45 +288,45 @@ function ProfileCreateBox({ studentId, setCurrentUser, setStep }) {
         <option value="MALE">남성</option>
         <option value="FEMALE">여성</option>
       </select>
-      <input type="text" placeholder="연락처 * (010-xxxx-xxxx)" value={form.contact} onChange={set("contact")} />
+      <input type="text" placeholder="연락처 * (010-xxxx-xxxx)" value={form.contact} onChange={(e) => setForm((f) => ({ ...f, contact: formatPhone(e.target.value) }))} />
       <input type="text" placeholder="학과 *" value={form.department} onChange={set("department")} />
       <input type="text" placeholder="관심 분야 * (예: 백엔드, AI, 디자인)" value={form.domains} onChange={set("domains")} />
       <textarea rows="4" placeholder="대외활동 이력 (선택)" value={form.activities} onChange={set("activities")} />
       {error && <p style={{ color: "#e24b4a", fontSize: "13px", margin: "4px 0" }}>{error}</p>}
-      <button onClick={handleSubmit} disabled={loading}>
-        {loading ? "저장 중..." : "프로필 작성 완료"}
-      </button>
+      <button onClick={handleSubmit} disabled={loading}>{loading ? "저장 중..." : "프로필 작성 완료"}</button>
     </div>
   );
 }
 
 // ── 마이페이지 프로필 수정 ────────────────────────────────
-function ProfileEditBox({ studentId, setStep }) {
+function ProfileEditBox() {
+  const { currentUser } = useUser();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", gender: "", contact: "", department: "", domains: "", activities: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.getProfile(studentId).then((p) => {
+    api.getProfile(currentUser.studentId).then((p) => {
       setForm({
         name: p.name || "",
         gender: p.gender || "",
-        contact: p.contact || "",
+        contact: formatPhone(p.contact || ""),
         department: p.department || "",
         domains: p.domains || "",
         activities: p.activities || "",
       });
     }).catch(() => {});
-  }, [studentId]);
+  }, [currentUser.studentId]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async () => {
     setLoading(true); setError("");
     try {
-      await api.updateProfile(studentId, form);
+      await api.updateProfile(currentUser.studentId, form);
       alert("프로필이 수정되었습니다.");
-      setStep(8);
+      navigate("/home");
     } catch (e) {
       const msgs = Object.values(e || {}).join(" / ");
       setError(msgs || "프로필 수정에 실패했습니다.");
@@ -418,21 +341,44 @@ function ProfileEditBox({ studentId, setStep }) {
         <option value="MALE">남성</option>
         <option value="FEMALE">여성</option>
       </select>
-      <input type="text" placeholder="연락처" value={form.contact} onChange={set("contact")} />
+      <input type="text" placeholder="연락처" value={form.contact} onChange={(e) => setForm((f) => ({ ...f, contact: formatPhone(e.target.value) }))} />
       <input type="text" placeholder="학과" value={form.department} onChange={set("department")} />
       <input type="text" placeholder="관심 분야" value={form.domains} onChange={set("domains")} />
       <textarea rows="4" placeholder="대외활동 이력" value={form.activities} onChange={set("activities")} />
       {error && <p style={{ color: "#e24b4a", fontSize: "13px", margin: "4px 0" }}>{error}</p>}
-      <button onClick={handleSubmit} disabled={loading}>
-        {loading ? "저장 중..." : "수정 완료"}
-      </button>
-      <button className="back" onClick={() => setStep(8)}>취소</button>
+      <button onClick={handleSubmit} disabled={loading}>{loading ? "저장 중..." : "수정 완료"}</button>
+      <button className="back" onClick={() => navigate("/home")}>취소</button>
     </div>
   );
 }
 
-// ── 팀플·공모전 목록 ─────────────────────────────────────
-function TeamMainPage({ posts, setSelectedPost, setStep }) {
+// ── 홈 (서비스 선택) ──────────────────────────────────────
+function HomePage() {
+  const { loadPosts } = useUser();
+  const navigate = useNavigate();
+  return (
+    <div className="service-wrap">
+      <div className="service-card" onClick={() => navigate("/meal")}>
+        <div className="icon green">👥</div>
+        <h2>밥친구 찾기</h2>
+        <p>같이 식사할 친구를 찾아보세요</p>
+      </div>
+      <div className="service-card" onClick={() => { loadPosts(); navigate("/posts"); }}>
+        <div className="icon purple">🏆</div>
+        <h2>팀플·공모전</h2>
+        <p>함께 도전할 팀원을 구해요</p>
+      </div>
+    </div>
+  );
+}
+
+// ── 팀플·공모전 목록 ──────────────────────────────────────
+function TeamMainPage() {
+  const { posts, setSelectedPost, loadPosts } = useUser();
+  const navigate = useNavigate();
+
+  useEffect(() => { loadPosts(); }, []);
+
   return (
     <div className="box wide page-box">
       <h2>팀플·공모전 메인</h2>
@@ -447,23 +393,25 @@ function TeamMainPage({ posts, setSelectedPost, setStep }) {
               <h3>{post.title}</h3>
               <p>{post.categoryDescription} · {post.projectName} · {post.maxMembers}명 모집</p>
             </div>
-            <button className="small-btn" onClick={() => { setSelectedPost(post); setStep(6); }}>
+            <button className="small-btn" onClick={() => { setSelectedPost(post); navigate(`/posts/${post.id}`); }}>
               {post.statusDescription}
             </button>
           </div>
         ))}
       </div>
       <div className="btn-row">
-        <button onClick={() => setStep(5)}>작성</button>
-        <button onClick={() => setStep(7)}>현황</button>
+        <button onClick={() => navigate("/posts/write")}>작성</button>
+        <button onClick={() => navigate("/posts/status")}>현황</button>
       </div>
-      <button className="back" onClick={() => setStep(8)}>서비스 선택으로</button>
+      <button className="back" onClick={() => navigate("/home")}>서비스 선택으로</button>
     </div>
   );
 }
 
-// ── 팀플·공모전 모집글 작성 ──────────────────────────────
-function TeamWritePage({ studentId, setStep, reloadPosts }) {
+// ── 팀플·공모전 모집글 작성 ───────────────────────────────
+function TeamWritePage() {
+  const { currentUser, loadPosts } = useUser();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "", category: "", projectName: "", content: "",
     maxMembers: "", deadline: "", teamFormationDate: "",
@@ -478,21 +426,18 @@ function TeamWritePage({ studentId, setStep, reloadPosts }) {
   const handleSubmit = async () => {
     const required = { title: "제목", category: "카테고리", projectName: "프로젝트/공모전명", content: "내용", maxMembers: "모집 인원", deadline: "마감일", activityMethod: "활동 방식" };
     const missing = Object.entries(required).filter(([k]) => !form[k]?.toString().trim()).map(([, v]) => v);
-    if (missing.length > 0) {
-      setError(`필수 항목을 입력해주세요: ${missing.join(", ")}`);
-      return;
-    }
+    if (missing.length > 0) { setError(`필수 항목을 입력해주세요: ${missing.join(", ")}`); return; }
     setLoading(true); setError(""); setFieldErrors({});
     try {
-      await api.createPost(studentId, {
+      await api.createPost(currentUser.studentId, {
         ...form,
         maxMembers: Number(form.maxMembers),
         deadline: form.deadline + ":00",
         teamFormationDate: form.teamFormationDate ? form.teamFormationDate + ":00" : null,
       });
       alert("모집글이 등록되었습니다!");
-      await reloadPosts();
-      setStep(4);
+      await loadPosts();
+      navigate("/posts");
     } catch (e) {
       if (typeof e === "object" && !e.message) {
         setFieldErrors(e);
@@ -508,23 +453,18 @@ function TeamWritePage({ studentId, setStep, reloadPosts }) {
   return (
     <div className="box">
       <h2>공모전 모집글 작성</h2>
-      <input type="text" placeholder="제목 *" value={form.title} onChange={set("title")} />
-      {fe("title")}
+      <input type="text" placeholder="제목 *" value={form.title} onChange={set("title")} />{fe("title")}
       <select value={form.category} onChange={set("category")} style={{ width: "100%", padding: "13px", marginBottom: "14px", border: "1px solid #ddd", borderRadius: "12px", fontSize: "15px" }}>
         <option value="">카테고리 선택 *</option>
         <option value="CONTEST">공모전</option>
         <option value="TEAM_PROJECT">팀플</option>
         <option value="PROJECT">프로젝트</option>
       </select>
-      <input type="text" placeholder="프로젝트/공모전 이름 *" value={form.projectName} onChange={set("projectName")} />
-      {fe("projectName")}
-      <textarea rows="4" placeholder="내용 *" value={form.content} onChange={set("content")} />
-      {fe("content")}
-      <input type="number" placeholder="모집 인원 *" value={form.maxMembers} onChange={set("maxMembers")} />
-      {fe("maxMembers")}
+      <input type="text" placeholder="프로젝트/공모전 이름 *" value={form.projectName} onChange={set("projectName")} />{fe("projectName")}
+      <textarea rows="4" placeholder="내용 *" value={form.content} onChange={set("content")} />{fe("content")}
+      <input type="number" placeholder="모집 인원 *" value={form.maxMembers} onChange={set("maxMembers")} />{fe("maxMembers")}
       <label style={{ fontSize: "13px", color: "#6b7280" }}>모집 마감일 *</label>
-      <input type="datetime-local" value={form.deadline} onChange={set("deadline")} />
-      {fe("deadline")}
+      <input type="datetime-local" value={form.deadline} onChange={set("deadline")} />{fe("deadline")}
       <label style={{ fontSize: "13px", color: "#6b7280" }}>팀 결성 희망일</label>
       <input type="datetime-local" value={form.teamFormationDate} onChange={set("teamFormationDate")} />
       <select value={form.activityMethod} onChange={set("activityMethod")} style={{ width: "100%", padding: "13px", marginBottom: "14px", border: "1px solid #ddd", borderRadius: "12px", fontSize: "15px" }}>
@@ -536,16 +476,20 @@ function TeamWritePage({ studentId, setStep, reloadPosts }) {
       <textarea rows="3" placeholder="우대사항 (선택)" value={form.preferredQualifications} onChange={set("preferredQualifications")} />
       <textarea rows="3" placeholder="하고 싶은 말 (선택)" value={form.message} onChange={set("message")} />
       {error && <p style={{ color: "#e24b4a", fontSize: "13px", margin: "4px 0" }}>{error}</p>}
-      <button onClick={handleSubmit} disabled={loading}>
-        {loading ? "등록 중..." : "등록"}
-      </button>
-      <button className="back" onClick={() => setStep(4)}>취소</button>
+      <button onClick={handleSubmit} disabled={loading}>{loading ? "등록 중..." : "등록"}</button>
+      <button className="back" onClick={() => navigate("/posts")}>취소</button>
     </div>
   );
 }
 
-// ── 팀플·공모전 상세 ─────────────────────────────────────
-function TeamDetailPage({ post, setStep }) {
+// ── 팀플·공모전 상세 ──────────────────────────────────────
+function TeamDetailPage() {
+  const { selectedPost } = useUser();
+  const navigate = useNavigate();
+  const post = selectedPost;
+
+  if (!post) { navigate("/posts"); return null; }
+
   return (
     <div className="box wide">
       <h2>공모전 모집글 상세</h2>
@@ -562,40 +506,39 @@ function TeamDetailPage({ post, setStep }) {
         {post.message && <p style={{ color: "#6b7280" }}>{post.message}</p>}
         <button>지원하기</button>
       </div>
-      <button className="back" onClick={() => setStep(4)}>뒤로가기</button>
+      <button className="back" onClick={() => navigate("/posts")}>뒤로가기</button>
     </div>
   );
 }
 
 // ── 즉시 매칭 대기 ────────────────────────────────────────
-function MatchingWaitPage({ studentId, setStep }) {
+function MatchingWaitPage() {
+  const { currentUser } = useUser();
+  const navigate = useNavigate();
   const [dots, setDots] = useState(".");
   const intervalRef = useRef(null);
   const pollRef = useRef(null);
 
   useEffect(() => {
-    // 매칭 시작
-    api.joinMatching(studentId).then((res) => {
+    api.joinMatching(currentUser.studentId).then((res) => {
       if (res?.status === "MATCHED") {
         sessionStorage.setItem("matchingResult", JSON.stringify(res.partner));
-        setStep(21);
+        navigate("/matching/result");
       }
     }).catch(() => {});
 
-    // 점 애니메이션
     intervalRef.current = setInterval(() => {
       setDots((d) => (d.length >= 3 ? "." : d + "."));
     }, 500);
 
-    // 3초 폴링
     pollRef.current = setInterval(async () => {
       try {
-        const res = await api.getMatchingStatus(studentId);
+        const res = await api.getMatchingStatus(currentUser.studentId);
         if (res?.status === "MATCHED") {
           sessionStorage.setItem("matchingResult", JSON.stringify(res.partner));
           clearInterval(intervalRef.current);
           clearInterval(pollRef.current);
-          setStep(21);
+          navigate("/matching/result");
         }
       } catch {}
     }, 3000);
@@ -604,13 +547,13 @@ function MatchingWaitPage({ studentId, setStep }) {
       clearInterval(intervalRef.current);
       clearInterval(pollRef.current);
     };
-  }, [studentId, setStep]);
+  }, [currentUser.studentId]);
 
   const handleCancel = async () => {
     clearInterval(intervalRef.current);
     clearInterval(pollRef.current);
-    await api.cancelMatching(studentId);
-    setStep(8);
+    await api.cancelMatching(currentUser.studentId);
+    navigate("/home");
   };
 
   return (
@@ -627,7 +570,8 @@ function MatchingWaitPage({ studentId, setStep }) {
 }
 
 // ── 즉시 매칭 완료 ────────────────────────────────────────
-function MatchingResultPage({ setStep }) {
+function MatchingResultPage() {
+  const navigate = useNavigate();
   const partner = JSON.parse(sessionStorage.getItem("matchingResult") || "{}");
 
   return (
@@ -640,40 +584,43 @@ function MatchingResultPage({ setStep }) {
         {partner.activities && <p>대외활동: {partner.activities}</p>}
         <p style={{ fontWeight: "bold", marginTop: "12px" }}>연락처: {partner.contact || "-"}</p>
       </div>
-      <button className="back" onClick={() => { sessionStorage.removeItem("matchingResult"); setStep(8); }}>
+      <button className="back" onClick={() => { sessionStorage.removeItem("matchingResult"); navigate("/home"); }}>
         서비스 선택으로
       </button>
     </div>
   );
 }
 
-// ── 기존 컴포넌트 (밥친구 등 미연동 유지) ───────────────
-function MainPage({ title, posts, detailStep, writeStep, statusStep, backStep, setStep }) {
+// ── 밥친구 ────────────────────────────────────────────────
+function MealPage() {
+  const navigate = useNavigate();
+  const posts = [
+    ["학생식당 같이 먹을 사람!", "오늘 12시 · 학생식당 · 1/2명"],
+    ["후문 라멘 먹을 사람", "오늘 6시 · 후문 · 2/4명"],
+  ];
   return (
     <div className="box wide page-box">
-      <h2>{title} 메인</h2>
+      <h2>밥친구 메인</h2>
       <input type="text" placeholder="검색어를 입력하세요" />
       <div className="simple-post-list">
         {posts.map((post, index) => (
           <div className="simple-post" key={index}>
-            <div>
-              <h3>{post[0]}</h3>
-              <p>{post[1]}</p>
-            </div>
-            <button className="small-btn" onClick={() => setStep(detailStep)}>모집중</button>
+            <div><h3>{post[0]}</h3><p>{post[1]}</p></div>
+            <button className="small-btn" onClick={() => navigate("/meal/detail")}>모집중</button>
           </div>
         ))}
       </div>
       <div className="btn-row">
-        <button onClick={() => setStep(writeStep)}>작성</button>
-        <button onClick={() => setStep(statusStep)}>현황</button>
+        <button onClick={() => navigate("/meal/write")}>작성</button>
+        <button onClick={() => navigate("/meal/status")}>현황</button>
       </div>
-      <button className="back" onClick={() => setStep(backStep)}>서비스 선택으로</button>
+      <button className="back" onClick={() => navigate("/home")}>서비스 선택으로</button>
     </div>
   );
 }
 
-function WritePage({ title, alertText, backStep, setStep }) {
+function WritePage({ title, alertText, backPath }) {
+  const navigate = useNavigate();
   return (
     <div className="box">
       <h2>{title}</h2>
@@ -682,13 +629,14 @@ function WritePage({ title, alertText, backStep, setStep }) {
       <input type="text" placeholder="시간" />
       <input type="number" placeholder="모집 인원" />
       <textarea rows="5" placeholder="내용"></textarea>
-      <button onClick={() => { alert(alertText); setStep(backStep); }}>등록</button>
-      <button className="back" onClick={() => setStep(backStep)}>취소</button>
+      <button onClick={() => { alert(alertText); navigate(backPath); }}>등록</button>
+      <button className="back" onClick={() => navigate(backPath)}>취소</button>
     </div>
   );
 }
 
-function DetailPage({ title, postTitle, info, content, buttonText, backStep, setStep }) {
+function DetailPage({ title, postTitle, info, content, buttonText, backPath }) {
+  const navigate = useNavigate();
   return (
     <div className="box wide">
       <h2>{title}</h2>
@@ -698,12 +646,13 @@ function DetailPage({ title, postTitle, info, content, buttonText, backStep, set
         <p>{content}</p>
         <button>{buttonText}</button>
       </div>
-      <button className="back" onClick={() => setStep(backStep)}>뒤로가기</button>
+      <button className="back" onClick={() => navigate(backPath)}>뒤로가기</button>
     </div>
   );
 }
 
-function StatusPage({ title, backStep, setStep }) {
+function StatusPage({ title, backPath }) {
+  const navigate = useNavigate();
   return (
     <div className="box wide">
       <h2>{title}</h2>
@@ -716,7 +665,7 @@ function StatusPage({ title, backStep, setStep }) {
         <h3>내가 신청한 모집글</h3>
         <p>상태: 대기중</p>
       </div>
-      <button className="back" onClick={() => setStep(backStep)}>메인으로</button>
+      <button className="back" onClick={() => navigate(backPath)}>메인으로</button>
     </div>
   );
 }
