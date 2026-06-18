@@ -9,7 +9,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication
 public class InhalinkBackendApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(InhalinkBackendApplication.class, args);
 	}

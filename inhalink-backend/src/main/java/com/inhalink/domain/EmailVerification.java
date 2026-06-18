@@ -15,11 +15,18 @@ public class EmailVerification {
 
     private String verificationCode; // 인증코드
 
+    private boolean isVerified; // 인증 완료 여부
+
     private LocalDateTime createdAt; // 생성시간
 
     public EmailVerification(String email, String verificationCode) {
         this.email = email;
         this.verificationCode = verificationCode;
+        this.isVerified = false;
         this.createdAt = LocalDateTime.now();
     }
-}
+
+    public void verify() {
+        this.isVerified = true;
+    }
+    }

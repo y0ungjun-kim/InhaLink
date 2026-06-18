@@ -1,6 +1,7 @@
 package com.inhalink.controller;
 
 import com.inhalink.domain.User;
+import com.inhalink.dto.request.SignupRequest;
 import com.inhalink.dto.request.UserProfileCreateRequest;
 import com.inhalink.dto.request.UserProfileUpdateRequest;
 import com.inhalink.dto.response.ApiResponse;
@@ -21,6 +22,13 @@ public class UserController {
 
     private final UserService userService;
 
+    @Operation(summary = "회원가입", description = "이메일, 비밀번호, 학번 등을 입력받아 회원가입을 진행합니다.")
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<Void>> signUp(@Valid @RequestBody SignupRequest request) {
+        userService.signUp(request);
+        return ResponseEntity.ok(ApiResponse.success("회원가입 성공", null));
+    }
+
     @Operation(summary = "프로필 조회", description = "학번으로 사용자 프로필을 조회합니다. profileComplete가 false면 최초 프로필 작성 화면으로 이동해야 합니다.")
     @GetMapping("/{studentId}/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
@@ -30,7 +38,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("조회 성공", new UserProfileResponse(user)));
     }
 
-    @Operation(summary = "최초 프로필 작성", description = "로그인 후 최초 1회 필수 항목을 모두 입력해 프로필을 완성합니다. 이미 완성된 경우 400 에러를 반환합니다.")
+    @Operation(summary = "최초 프로필 작성", description = "로그인 후 최초 1회 필수 항목을 모두 입력해 프로필을 완성합니다. 이미 완성된 경우 409 에러를 반환합니다.")
     @PostMapping("/{studentId}/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> createProfile(
             @PathVariable String studentId,

@@ -1,5 +1,6 @@
 package com.inhalink.domain;
 
+import com.inhalink.domain.enums.Gender;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,27 +25,27 @@ public class User {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String gender;
+    private Gender gender;
 
     @Column(nullable = false, length = 20)
     private String contact;
 
     @Column(length = 100)
-    private String department; // 학과
+    private String department;
 
     @Column(length = 255)
-    private String domains; // 관심 분야
+    private String domains;
 
     @Column(columnDefinition = "TEXT")
-    private String activities; // 대외활동 이력
+    private String activities;
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean profileComplete = false; // 최초 프로필 작성 완료 여부
+    private boolean profileComplete = false;
 
-    // 최초 프로필 작성: 필수 항목을 모두 채우고 완료 처리
-    public void createProfile(String name, String gender, String contact, String department,
+    public void createProfile(String name, Gender gender, String contact, String department,
                               String domains, String activities) {
         this.name = name;
         this.gender = gender;
@@ -55,11 +56,10 @@ public class User {
         this.profileComplete = true;
     }
 
-    // 마이페이지 수정: 넘어온 값이 있을 때만 교체 (부분 업데이트)
-    public void updateProfile(String name, String gender, String contact, String department,
+    public void updateProfile(String name, Gender gender, String contact, String department,
                               String domains, String activities) {
         if (name != null && !name.isBlank()) this.name = name;
-        if (gender != null && !gender.isBlank()) this.gender = gender;
+        if (gender != null) this.gender = gender;
         if (contact != null && !contact.isBlank()) this.contact = contact;
         if (department != null && !department.isBlank()) this.department = department;
         if (domains != null) this.domains = domains;
