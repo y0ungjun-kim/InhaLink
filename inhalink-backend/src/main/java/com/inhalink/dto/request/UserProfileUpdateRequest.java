@@ -1,5 +1,6 @@
 package com.inhalink.dto.request;
 
+import com.inhalink.domain.enums.Gender;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 public class UserProfileUpdateRequest {
 
     private String name;
-    private String gender;
+    private Gender gender;
     private String contact;
     private String department;
     private String domains;

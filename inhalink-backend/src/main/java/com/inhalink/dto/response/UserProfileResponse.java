@@ -1,6 +1,7 @@
 package com.inhalink.dto.response;
 
 import com.inhalink.domain.User;
+import com.inhalink.domain.enums.Gender;
 import lombok.Getter;
 
 @Getter
@@ -8,7 +9,8 @@ public class UserProfileResponse {
 
     private String studentId;
     private String name;
-    private String gender;
+    private Gender gender;
+    private String genderDescription;
     private String contact;
     private String department;
     private String domains;
@@ -19,6 +21,7 @@ public class UserProfileResponse {
         this.studentId = user.getStudentId();
         this.name = user.getName();
         this.gender = user.getGender();
+        this.genderDescription = user.getGender() != null ? user.getGender().getDescription() : null;
         this.contact = user.getContact();
         this.department = user.getDepartment();
         this.domains = user.getDomains();
