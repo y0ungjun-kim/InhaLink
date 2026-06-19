@@ -1,7 +1,4 @@
 spring:
-  profiles:
-    include: secret
-
   application:
     name: inhalink-backend
 
@@ -9,7 +6,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${DB_URL:jdbc:mysql://localhost:3306/inhalink?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:tlsdudwo0122}
 
   jpa:
     hibernate:
@@ -28,8 +25,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:placeholder}
-    password: ${MAIL_PASSWORD:placeholder}
+    username: ${MAIL_USERNAME:admininhalink@gmail.com}
+    password: ${MAIL_PASSWORD:ejpgknztszxvqqek}
     properties:
       mail:
         smtp:
