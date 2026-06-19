@@ -65,6 +65,16 @@ export const api = {
   createPost: (studentId, body) =>
     request("POST", `/posts?studentId=${studentId}`, body),
 
+  // 지원
+  applyPost: (postId) =>
+    request("POST", `/posts/${postId}/apply`),
+  getApplications: (postId) =>
+    request("GET", `/posts/${postId}/applications`),
+  acceptApplication: (applicationId) =>
+    request("PATCH", `/applications/${applicationId}/accept`),
+  rejectApplication: (applicationId) =>
+    request("PATCH", `/applications/${applicationId}/reject`),
+
   // 채팅
   getMyChatRooms: () =>
     request("GET", "/chat/rooms"),

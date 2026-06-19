@@ -5,6 +5,7 @@ import com.inhalink.domain.ProjectPost;
 import com.inhalink.domain.User;
 import com.inhalink.domain.enums.ApplicationStatus;
 import com.inhalink.domain.enums.PostStatus;
+import com.inhalink.dto.response.ApplicationResponse;
 import com.inhalink.exception.PostNotFoundException;
 import com.inhalink.exception.UserNotFoundException;
 import com.inhalink.repository.ProjectApplicationRepository;
@@ -14,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class ProjectApplicationService {
@@ -21,6 +25,7 @@ public class ProjectApplicationService {
     private final ProjectApplicationRepository applicationRepository;
     private final ProjectPostRepository projectPostRepository;
     private final UserRepository userRepository;
+    private final ChatService chatService;
 
     @Transactional
     public Long applyForProject(String applicantId, Long postId) {
@@ -52,21 +57,34 @@ public class ProjectApplicationService {
         return applicationRepository.save(application).getId();
     }
 
-    // 지원서를 수락하거나 거절할 때, 요청을 보낸 사람이 실제 글쓴이인지 확인
+    public List<ApplicationResponse> getApplications(String loginId, Long postId) {
+        ProjectPost post = projectPostRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException());
+        if (!post.getWriter().getStudentId().equals(loginId)) {
+            throw new org.springframework.security.access.AccessDeniedException("조회 권한이 없습니다.");
+        }
+        return applicationRepository.findByProjectPostId(postId).stream()
+                .map(ApplicationResponse::new)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public void updateApplicationStatus(String loginId, Long applicationId, ApplicationStatus newStatus) {
         ProjectApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new PostNotFoundException());
 
-        // 이 게시글의 작성자가 현재 로그인한 유저가 맞는지 확인
         String writerId = application.getProjectPost().getWriter().getStudentId();
         if (!writerId.equals(loginId)) {
-            // Spring Security의 예외를 사용해 403 응답이 나가도록 함
             throw new org.springframework.security.access.AccessDeniedException("해당 지원서를 처리할 권한이 없습니다.");
         }
 
         if (newStatus == ApplicationStatus.ACCEPTED) {
             application.accept();
+            // 수락 시 채팅방 자동 생성
+            ProjectPost post = application.getProjectPost();
+            String roomName = post.getTitle() + " 채팅방";
+            List<String> memberIds = List.of(writerId, application.getApplicant().getStudentId());
+            chatService.createRoom(roomName, memberIds, post);
         } else if (newStatus == ApplicationStatus.REJECTED) {
             application.reject();
         }
