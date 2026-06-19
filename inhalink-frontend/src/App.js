@@ -561,6 +561,9 @@ function TeamDetailPage() {
   const navigate = useNavigate();
   const [post, setPost] = useState(selectedPost || null);
   const [loading, setLoading] = useState(!selectedPost);
+  const [applications, setApplications] = useState([]);
+  const [applyMsg, setApplyMsg] = useState("");
+  const isOwner = post && currentUser?.studentId === post.writerStudentId;
 
   useEffect(() => {
     if (!selectedPost && id) {
@@ -570,6 +573,30 @@ function TeamDetailPage() {
         .finally(() => setLoading(false));
     }
   }, [id, selectedPost, navigate]);
+
+  useEffect(() => {
+    if (isOwner && post) {
+      api.getApplications(post.id).then(setApplications).catch(() => {});
+    }
+  }, [isOwner, post]);
+
+  const handleApply = () => {
+    api.applyPost(post.id)
+      .then(() => setApplyMsg("지원이 완료되었습니다!"))
+      .catch((e) => setApplyMsg(e?.message || "지원에 실패했습니다."));
+  };
+
+  const handleAccept = (appId) => {
+    api.acceptApplication(appId).then(() => {
+      setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status: "ACCEPTED" } : a));
+    }).catch((e) => alert(e?.message || "오류가 발생했습니다."));
+  };
+
+  const handleReject = (appId) => {
+    api.rejectApplication(appId).then(() => {
+      setApplications((prev) => prev.map((a) => a.id === appId ? { ...a, status: "REJECTED" } : a));
+    }).catch((e) => alert(e?.message || "오류가 발생했습니다."));
+  };
 
   if (loading) return <div className="box wide"><p style={{ color: "#6b7280" }}>불러오는 중...</p></div>;
   if (!post) return null;
@@ -588,8 +615,40 @@ function TeamDetailPage() {
         {post.preferredQualifications && <p>우대사항: {post.preferredQualifications}</p>}
         <p style={{ marginTop: "12px" }}>{post.content}</p>
         {post.message && <p style={{ color: "#6b7280" }}>{post.message}</p>}
-        {currentUser?.studentId !== post.writerStudentId && <button>지원하기</button>}
+
+        {!isOwner && (
+          <>
+            <button onClick={handleApply}>지원하기</button>
+            {applyMsg && <p style={{ fontSize: "13px", marginTop: "8px", color: applyMsg.includes("완료") ? "#10b981" : "#e24b4a" }}>{applyMsg}</p>}
+          </>
+        )}
       </div>
+
+      {isOwner && (
+        <div style={{ marginTop: "24px" }}>
+          <h3 style={{ fontSize: "15px", marginBottom: "12px" }}>지원자 목록</h3>
+          {applications.length === 0 && <p style={{ color: "#6b7280", fontSize: "14px" }}>아직 지원자가 없습니다.</p>}
+          {applications.map((app) => (
+            <div key={app.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div>
+                <p style={{ fontWeight: "600", fontSize: "14px" }}>{app.applicantName}</p>
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>{app.applicantDepartment} · {app.applicantStudentId}</p>
+              </div>
+              {app.status === "PENDING" ? (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={() => handleAccept(app.id)} style={{ padding: "6px 14px", background: "#10b981", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px" }}>수락</button>
+                  <button onClick={() => handleReject(app.id)} style={{ padding: "6px 14px", background: "#e24b4a", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px" }}>거절</button>
+                </div>
+              ) : (
+                <span style={{ fontSize: "13px", color: app.status === "ACCEPTED" ? "#10b981" : "#e24b4a" }}>
+                  {app.status === "ACCEPTED" ? "수락됨" : "거절됨"}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       <button className="back" onClick={() => navigate(-1)}>뒤로가기</button>
     </div>
   );
