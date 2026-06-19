@@ -1,4 +1,4 @@
-const BASE = "http://localhost:8080/api";
+const BASE = "https://inhalink-backend.onrender.com/api";
 
 function getToken() {
   return localStorage.getItem("token");
