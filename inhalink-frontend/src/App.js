@@ -78,8 +78,6 @@ function App() {
               <Route path="/meal/write" element={<RequireAuth><WritePage title="밥친구 모집글 작성" alertText="밥친구 모집글이 등록되었습니다!" backPath="/meal" /></RequireAuth>} />
               <Route path="/meal/detail" element={<RequireAuth><DetailPage title="밥친구 모집글 상세" postTitle="학생식당 같이 먹을 사람!" info={["작성자: 컴공 2학년", "장소: 학생식당", "시간: 오늘 12시", "모집 인원: 1/2명"]} content="점심 같이 먹을 밥친구 구합니다." buttonText="신청하기" backPath="/meal" /></RequireAuth>} />
               <Route path="/meal/status" element={<RequireAuth><StatusPage title="밥친구 모집 현황" backPath="/meal" /></RequireAuth>} />
-              <Route path="/matching" element={<RequireAuth><MatchingWaitPage /></RequireAuth>} />
-              <Route path="/matching/result" element={<RequireAuth><MatchingResultPage /></RequireAuth>} />
               <Route path="/my-posts" element={<RequireAuth><MyPostsPage /></RequireAuth>} />
               <Route path="/chat" element={<RequireAuth><ChatListPage /></RequireAuth>} />
               <Route path="/chat/:roomId" element={<RequireAuth><ChatRoomPage /></RequireAuth>} />
@@ -430,15 +428,6 @@ function HomePage() {
           <h2>팀플·공모전</h2>
           <p>함께 도전할 팀원을 구해요</p>
         </div>
-
-        <div
-          className="service-card"
-          onClick={() => navigate("/matching")}
-        >
-          <div className="icon purple">⚡</div>
-          <h2>1:1 즉시 매칭</h2>
-          <p>지금 접속한 학우와 바로 연결돼요</p>
-        </div>
       </div>
     </>
   );
@@ -591,86 +580,6 @@ function TeamDetailPage() {
         {currentUser?.studentId !== post.writerStudentId && <button>지원하기</button>}
       </div>
       <button className="back" onClick={() => navigate(-1)}>뒤로가기</button>
-    </div>
-  );
-}
-
-// ── 즉시 매칭 대기 ────────────────────────────────────────
-function MatchingWaitPage() {
-  const { currentUser } = useUser();
-  const navigate = useNavigate();
-  const [dots, setDots] = useState(".");
-  const intervalRef = useRef(null);
-  const pollRef = useRef(null);
-
-  useEffect(() => {
-    api.joinMatching(currentUser.studentId).then((res) => {
-      if (res?.status === "MATCHED") {
-        sessionStorage.setItem("matchingResult", JSON.stringify(res.partner));
-        navigate("/matching/result");
-      }
-    }).catch(() => {});
-
-    intervalRef.current = setInterval(() => {
-      setDots((d) => (d.length >= 3 ? "." : d + "."));
-    }, 500);
-
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await api.getMatchingStatus(currentUser.studentId);
-        if (res?.status === "MATCHED") {
-          sessionStorage.setItem("matchingResult", JSON.stringify(res.partner));
-          clearInterval(intervalRef.current);
-          clearInterval(pollRef.current);
-          navigate("/matching/result");
-        }
-      } catch {}
-    }, 3000);
-
-    return () => {
-      clearInterval(intervalRef.current);
-      clearInterval(pollRef.current);
-    };
-  }, [currentUser.studentId]);
-
-  const handleCancel = async () => {
-    clearInterval(intervalRef.current);
-    clearInterval(pollRef.current);
-    await api.cancelMatching(currentUser.studentId);
-    navigate("/home");
-  };
-
-  return (
-    <div className="box start-box">
-      <div className="start-icon">⚡</div>
-      <h2>매칭 중{dots}</h2>
-      <p className="start-text">
-        지금 접속한 인하대 학우와 연결하고 있어요.<br />
-        잠시만 기다려주세요.
-      </p>
-      <button className="back" onClick={handleCancel}>취소</button>
-    </div>
-  );
-}
-
-// ── 즉시 매칭 완료 ────────────────────────────────────────
-function MatchingResultPage() {
-  const navigate = useNavigate();
-  const partner = JSON.parse(sessionStorage.getItem("matchingResult") || "{}");
-
-  return (
-    <div className="box wide">
-      <h2>매칭 완료!</h2>
-      <div className="post">
-        <h3>{partner.name || "상대방"}</h3>
-        <p>학과: {partner.department || "-"}</p>
-        <p>관심 분야: {partner.domains || "-"}</p>
-        {partner.activities && <p>대외활동: {partner.activities}</p>}
-        <p style={{ fontWeight: "bold", marginTop: "12px" }}>연락처: {partner.contact || "-"}</p>
-      </div>
-      <button className="back" onClick={() => { sessionStorage.removeItem("matchingResult"); navigate("/home"); }}>
-        서비스 선택으로
-      </button>
     </div>
   );
 }
