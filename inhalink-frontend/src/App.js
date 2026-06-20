@@ -133,7 +133,7 @@ function LoginBox() {
       if (!profile.profileComplete) {
         navigate("/profile/create");
       } else {
-        navigate("/home");
+        navigate("/posts");
       }
     } catch {
       setError("학번 또는 비밀번호가 올바르지 않습니다.");
@@ -277,7 +277,7 @@ function ProfileCreateBox() {
     try {
       const updated = await api.createProfile(currentUser.studentId, form);
       setCurrentUser({ ...currentUser, name: updated.name });
-      navigate("/home");
+      navigate("/posts");
     } catch (e) {
       const msgs = Object.values(e || {}).join(" / ");
       setError(msgs || "프로필 작성에 실패했습니다.");
@@ -453,26 +453,33 @@ function TeamMainPage() {
 
   return (
     <div className="box wide page-box">
-      <h2>팀플·공모전 메인</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        <h2 style={{ margin: 0 }}>팀플·공모전 메인</h2>
+        <button className="small-btn" onClick={() => navigate("/posts/write")} style={{ width: "auto", padding: "8px 16px" }}>모집글 작성</button>
+      </div>
       <input type="text" placeholder="검색어를 입력하세요" />
       <div className="simple-post-list">
         {posts.length === 0 && (
           <p style={{ color: "#6b7280", fontSize: "14px", padding: "12px 0" }}>등록된 모집글이 없습니다.</p>
         )}
         {posts.map((post) => (
-          <div className="simple-post" key={post.id}>
+          <div
+            className="simple-post"
+            key={post.id}
+            onClick={() => { setSelectedPost(post); navigate(`/posts/${post.id}`); }}
+            style={{ cursor: "pointer" }}
+          >
             <div>
               <h3>{post.title}</h3>
               <p>{post.categoryDescription} · {post.projectName} · {post.maxMembers}명 모집</p>
             </div>
-            <button className="small-btn" onClick={() => { setSelectedPost(post); navigate(`/posts/${post.id}`); }}>
+            <button className="small-btn" onClick={(e) => { e.stopPropagation(); setSelectedPost(post); navigate(`/posts/${post.id}`); }}>
               {post.statusDescription}
             </button>
           </div>
         ))}
       </div>
       <div className="btn-row">
-        <button onClick={() => navigate("/posts/write")}>작성</button>
         <button onClick={() => navigate("/posts/status")}>현황</button>
       </div>
       <button className="back" onClick={() => navigate("/home")}>서비스 선택으로</button>
@@ -561,6 +568,7 @@ function TeamDetailPage() {
   const navigate = useNavigate();
   const [post, setPost] = useState(selectedPost || null);
   const [loading, setLoading] = useState(!selectedPost);
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     if (!selectedPost && id) {
@@ -570,6 +578,19 @@ function TeamDetailPage() {
         .finally(() => setLoading(false));
     }
   }, [id, selectedPost, navigate]);
+
+  const handleApply = async () => {
+    if (!post || !currentUser) return;
+    setApplying(true);
+    try {
+      await api.applyPost(post.id, currentUser.studentId);
+      alert("지원 완료되었습니다!");
+    } catch (e) {
+      alert(e?.message || "지원에 실패했습니다.");
+    } finally {
+      setApplying(false);
+    }
+  };
 
   if (loading) return <div className="box wide"><p style={{ color: "#6b7280" }}>불러오는 중...</p></div>;
   if (!post) return null;
@@ -588,7 +609,11 @@ function TeamDetailPage() {
         {post.preferredQualifications && <p>우대사항: {post.preferredQualifications}</p>}
         <p style={{ marginTop: "12px" }}>{post.content}</p>
         {post.message && <p style={{ color: "#6b7280" }}>{post.message}</p>}
-        {currentUser?.studentId !== post.writerStudentId && <button>지원하기</button>}
+        {currentUser?.studentId !== post.writerStudentId && (
+          <button onClick={handleApply} disabled={applying}>
+            {applying ? "지원 중..." : "지원하기"}
+          </button>
+        )}
       </div>
       <button className="back" onClick={() => navigate(-1)}>뒤로가기</button>
     </div>
@@ -743,7 +768,7 @@ function StatusPage({ title, backPath }) {
       <div className="post">
         <h3>내가 올린 모집글</h3>
         <p>지원자 또는 신청자 2명</p>
-        <button>목록 보기</button>
+        <button onClick={() => navigate("/my-posts")}>목록 보기</button>
       </div>
       <div className="post">
         <h3>내가 신청한 모집글</h3>
