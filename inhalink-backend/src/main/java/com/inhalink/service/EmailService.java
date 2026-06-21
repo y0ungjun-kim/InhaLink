@@ -3,37 +3,38 @@ package com.inhalink.service;
 import com.inhalink.domain.EmailVerification;
 import com.inhalink.repository.EmailVerificationRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
     private final EmailVerificationRepository emailVerificationRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${brevo.api-key}")
+    private String brevoApiKey;
 
     private static final String DOMAIN_AC_KR = "@inha.ac.kr";
     private static final String DOMAIN_EDU = "@inha.edu";
 
     @Transactional
     public void sendVerificationCode(String email) {
-        // 1. 학교 이메일인지 확인 (ac.kr 또는 edu)
         if (!email.endsWith(DOMAIN_AC_KR) && !email.endsWith(DOMAIN_EDU)) {
             throw new IllegalArgumentException("인하대학교 이메일(@inha.ac.kr 또는 @inha.edu)만 사용 가능합니다.");
         }
 
-        // 2. 인증코드 생성 (6자리 난수)
         String verificationCode = generateCode();
-
-        // 3. 이메일 발송
         sendEmail(email, verificationCode);
 
-        // 4. Redis에 저장 (이미 EmailVerification에 TTL 5분이 설정되어 있음)
         EmailVerification verification = new EmailVerification(email, verificationCode);
         emailVerificationRepository.save(verification);
     }
@@ -63,10 +64,18 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String code) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject("[InhaLink] 이메일 인증 번호");
-        message.setText("인증 번호는 [" + code + "] 입니다. 5분 이내에 입력해주세요.");
-        mailSender.send(message);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("api-key", brevoApiKey);
+
+        Map<String, Object> body = Map.of(
+                "sender", Map.of("name", "InhaLink", "email", "af761f001@smtp-brevo.com"),
+                "to", List.of(Map.of("email", to)),
+                "subject", "[InhaLink] 이메일 인증 번호",
+                "textContent", "인증 번호는 [" + code + "] 입니다. 5분 이내에 입력해주세요."
+        );
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
     }
 }
