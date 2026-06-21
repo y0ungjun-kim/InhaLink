@@ -9,9 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -20,13 +17,11 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class EmailService {
 
-    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
-
     private final EmailVerificationRepository emailVerificationRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${brevo.api-key}")
-    private String brevoApiKey;
+    @Value("${resend.api-key}")
+    private String resendApiKey;
 
     private static final String DOMAIN_AC_KR = "@inha.ac.kr";
     private static final String DOMAIN_EDU = "@inha.edu";
@@ -69,25 +64,18 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String code) {
-        log.info("BREVO_API_KEY length: {}, starts with: {}", brevoApiKey.length(), brevoApiKey.substring(0, Math.min(10, brevoApiKey.length())));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("api-key", brevoApiKey);
+        headers.set("Authorization", "Bearer " + resendApiKey);
 
         Map<String, Object> body = Map.of(
-                "sender", Map.of("name", "InhaLink", "email", "admininhalink@gmail.com"),
-                "to", List.of(Map.of("email", to)),
+                "from", "InhaLink <onboarding@resend.dev>",
+                "to", List.of(to),
                 "subject", "[InhaLink] 이메일 인증 번호",
-                "textContent", "인증 번호는 [" + code + "] 입니다. 5분 이내에 입력해주세요."
+                "text", "인증 번호는 [" + code + "] 입니다. 5분 이내에 입력해주세요."
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        try {
-            ResponseEntity<String> response = restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
-            log.info("Brevo response: {}", response.getStatusCode());
-        } catch (org.springframework.web.client.HttpClientErrorException e) {
-            log.error("Brevo error status: {}, body: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw e;
-        }
+        restTemplate.postForEntity("https://api.resend.com/emails", request, String.class);
     }
 }
