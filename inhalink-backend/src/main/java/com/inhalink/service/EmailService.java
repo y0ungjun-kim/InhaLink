@@ -82,6 +82,12 @@ public class EmailService {
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
+            log.info("Brevo response: {}", response.getStatusCode());
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("Brevo error status: {}, body: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        }
     }
 }
