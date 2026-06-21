@@ -25,14 +25,14 @@ spring:
 
   mail:
     host: smtp.gmail.com
-    port: 587
+    port: 465
     username: ${MAIL_USERNAME:admininhalink@gmail.com}
     password: ${MAIL_PASSWORD:ejpgknztszxvqqek}
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
+          ssl:
             enable: true
           timeout: 5000
 
