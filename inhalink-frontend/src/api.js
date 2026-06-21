@@ -1,4 +1,4 @@
-const BASE = "http://localhost:8080/api";
+const BASE = "https://inhalink-production.up.railway.app/api";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -66,6 +66,16 @@ export const api = {
     request("POST", `/posts?studentId=${studentId}`, body),
   applyPost: (postId, studentId) =>
     request("POST", `/posts/${postId}/apply?studentId=${studentId}`),
+
+  // 지원
+  applyPost: (postId) =>
+    request("POST", `/posts/${postId}/apply`),
+  getApplications: (postId) =>
+    request("GET", `/posts/${postId}/applications`),
+  acceptApplication: (applicationId) =>
+    request("PATCH", `/applications/${applicationId}/accept`),
+  rejectApplication: (applicationId) =>
+    request("PATCH", `/applications/${applicationId}/reject`),
 
   // 채팅
   getMyChatRooms: () =>
