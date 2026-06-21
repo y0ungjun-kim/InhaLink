@@ -45,7 +45,7 @@ function App() {
     api.getMe().then((profile) => {
       setCurrentUser({ studentId: profile.studentId, name: profile.name, gender: profile.gender || "MALE", contact: formatPhone(profile.contact || "") });
     }).catch(() => clearToken());
-  }, []);
+  }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPosts = async () => {
     try {
@@ -438,7 +438,7 @@ function TeamMainPage() {
   const { posts, setSelectedPost, loadPosts } = useUser();
   const navigate = useNavigate();
 
-  useEffect(() => { loadPosts(); }, []);
+  useEffect(() => { loadPosts(); }, [loadPosts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="box wide page-box">
