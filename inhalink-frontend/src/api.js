@@ -1,4 +1,4 @@
-const BASE = "https://inhalink.onrender.com/api";
+const BASE = "https://inhalink-production.up.railway.app/api";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -64,9 +64,6 @@ export const api = {
     request("GET", `/posts/${postId}`),
   createPost: (studentId, body) =>
     request("POST", `/posts?studentId=${studentId}`, body),
-  applyPost: (postId, studentId) =>
-    request("POST", `/posts/${postId}/apply?studentId=${studentId}`),
-
   // 지원
   applyPost: (postId) =>
     request("POST", `/posts/${postId}/apply`),
