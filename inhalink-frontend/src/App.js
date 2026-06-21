@@ -45,7 +45,7 @@ function App() {
     api.getMe().then((profile) => {
       setCurrentUser({ studentId: profile.studentId, name: profile.name, gender: profile.gender || "MALE", contact: formatPhone(profile.contact || "") });
     }).catch(() => clearToken());
-  }, []);
+  }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPosts = async () => {
     try {
@@ -154,10 +154,8 @@ function LoginBox() {
 
 // ── 회원가입 ──────────────────────────────────────────────
 function SignupBox() {
-  const { verified, setVerified, verifiedEmail, setVerifiedEmail } = useUser();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [signupStudentId, setSignupStudentId] = useState("");
@@ -166,49 +164,19 @@ function SignupBox() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSendCode = async () => {
-    if (!email.trim()) { setError("이메일을 입력해주세요."); return; }
+  const handleSignup = async () => {
+    if (!email.trim() || !signupStudentId.trim() || !password.trim() || !name.trim() || !gender || !contact.trim()) {
+      setError("모든 필수 항목을 입력해주세요.");
+      return;
+    }
     if (!email.endsWith("@inha.ac.kr") && !email.endsWith("@inha.edu")) {
       setError("인하대학교 이메일(@inha.ac.kr 또는 @inha.edu)만 사용 가능합니다.");
       return;
     }
     setLoading(true); setError("");
     try {
-      await api.sendCode(email);
-      alert("인증번호가 발송되었습니다.");
-    } catch (e) {
-      setError(e?.message || "이메일 발송에 실패했습니다.");
-    } finally { setLoading(false); }
-  };
-
-  const handleVerify = async () => {
-    if (!code.trim()) { setError("인증번호를 입력해주세요."); return; }
-    setLoading(true); setError("");
-    try {
-      const result = await api.verifyCode(email, code);
-      if (result === true) {
-        setVerifiedEmail(email);
-        setVerified(true);
-        setError("");
-      } else {
-        setError("인증번호가 올바르지 않거나 만료되었습니다.");
-      }
-    } catch {
-      setError("인증 확인에 실패했습니다.");
-    } finally { setLoading(false); }
-  };
-
-  const handleSignup = async () => {
-    if (!signupStudentId.trim() || !password.trim() || !name.trim() || !gender || !contact.trim()) {
-      setError("모든 필수 항목을 입력해주세요.");
-      return;
-    }
-    setLoading(true); setError("");
-    try {
-      await api.signup({ email: verifiedEmail, password, name, studentId: signupStudentId, gender, contact });
+      await api.signup({ email, password, name, studentId: signupStudentId, gender, contact });
       alert("회원가입이 완료되었습니다!");
-      setVerified(false);
-      setVerifiedEmail("");
       navigate("/login");
     } catch (e) {
       const msgs = Object.values(e || {}).join(" / ");
@@ -219,32 +187,18 @@ function SignupBox() {
   return (
     <div className="box">
       <h2>회원가입</h2>
-      {!verified && (
-        <>
-          <input type="text" placeholder="이메일 (@inha.ac.kr 또는 @inha.edu)" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <button onClick={handleSendCode} disabled={loading}>인증번호 발송</button>
-          <br /><br />
-          <input type="text" placeholder="인증번호" value={code} onChange={(e) => setCode(e.target.value)} />
-          <button onClick={handleVerify} disabled={loading}>인증 확인</button>
-        </>
-      )}
-      {verified && (
-        <>
-          <h3>계정 정보</h3>
-          <input type="text" placeholder="학번" value={signupStudentId} onChange={(e) => setSignupStudentId(e.target.value)} />
-          <input type="password" placeholder="비밀번호 (8자 이상)" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <h3>기본 정보</h3>
-          <input type="text" placeholder="이름" value={name} onChange={(e) => setName(e.target.value)} />
-          <select value={gender} onChange={(e) => setGender(e.target.value)} style={{ width: "100%", padding: "13px", marginBottom: "14px", border: "1px solid #ddd", borderRadius: "12px", fontSize: "15px" }}>
-            <option value="">성별 선택</option>
-            <option value="MALE">남성</option>
-            <option value="FEMALE">여성</option>
-          </select>
-          <input type="text" placeholder="연락처 (010-xxxx-xxxx)" value={contact} onChange={(e) => setContact(formatPhone(e.target.value))} />
-        </>
-      )}
+      <input type="text" placeholder="이메일 (@inha.ac.kr 또는 @inha.edu)" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input type="text" placeholder="학번" value={signupStudentId} onChange={(e) => setSignupStudentId(e.target.value)} />
+      <input type="password" placeholder="비밀번호 (8자 이상)" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <input type="text" placeholder="이름" value={name} onChange={(e) => setName(e.target.value)} />
+      <select value={gender} onChange={(e) => setGender(e.target.value)} style={{ width: "100%", padding: "13px", marginBottom: "14px", border: "1px solid #ddd", borderRadius: "12px", fontSize: "15px" }}>
+        <option value="">성별 선택</option>
+        <option value="MALE">남성</option>
+        <option value="FEMALE">여성</option>
+      </select>
+      <input type="text" placeholder="연락처 (010-xxxx-xxxx)" value={contact} onChange={(e) => setContact(formatPhone(e.target.value))} />
       {error && <p style={{ color: "#e24b4a", fontSize: "13px", margin: "4px 0" }}>{error}</p>}
-      {verified && <button onClick={handleSignup} disabled={loading}>{loading ? "처리 중..." : "회원가입 완료"}</button>}
+      <button onClick={handleSignup} disabled={loading}>{loading ? "처리 중..." : "회원가입 완료"}</button>
       <button className="back" onClick={() => navigate("/")}>뒤로가기</button>
     </div>
   );
@@ -438,7 +392,7 @@ function TeamMainPage() {
   const { posts, setSelectedPost, loadPosts } = useUser();
   const navigate = useNavigate();
 
-  useEffect(() => { loadPosts(); }, []);
+  useEffect(() => { loadPosts(); }, [loadPosts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="box wide page-box">

@@ -1,4 +1,4 @@
-const BASE = "https://inhalink-production.up.railway.app/api";
+const BASE = "https://inhalink.onrender.com/api";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -26,7 +26,7 @@ async function request(method, path, body) {
   try {
     json = await res.json();
   } catch {
-    throw { message: "서버 응답을 처리할 수 없습니다." };
+    throw new Error("서버 응답을 처리할 수 없습니다.");
   }
   if (!res.ok) throw json;
   return json.data;
