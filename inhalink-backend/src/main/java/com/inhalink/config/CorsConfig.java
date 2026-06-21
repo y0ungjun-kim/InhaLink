@@ -15,9 +15,9 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOriginPatterns(List.of("http://localhost:3000",
+        config.setAllowedOrigins(List.of("http://localhost:3000",
                 "https://inha-link.vercel.app",
-                "https://*.vercel.app"));
+                "https://inhalink-production.up.railway.app"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
