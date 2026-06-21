@@ -1,4 +1,4 @@
-const BASE = "https://inhalink-backend.onrender.com/api";
+const BASE = "https://inhalink-production.up.railway.app/api";
 
 function getToken() {
   return localStorage.getItem("token");
