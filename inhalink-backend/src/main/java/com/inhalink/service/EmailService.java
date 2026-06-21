@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -16,6 +19,8 @@ import java.util.Random;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final EmailVerificationRepository emailVerificationRepository;
     private final RestTemplate restTemplate;
@@ -64,6 +69,7 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String code) {
+        log.info("BREVO_API_KEY length: {}, starts with: {}", brevoApiKey.length(), brevoApiKey.substring(0, Math.min(10, brevoApiKey.length())));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("api-key", brevoApiKey);
