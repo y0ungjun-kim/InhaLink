@@ -5,6 +5,7 @@ import com.inhalink.dto.response.ApiResponse;
 import com.inhalink.dto.response.PostCreateResponse;
 import com.inhalink.dto.response.ProjectPostResponse;
 import com.inhalink.service.ProjectPostService;
+import com.inhalink.service.ProjectApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,6 +22,7 @@ import java.util.List;
 public class ProjectPostController {
 
     private final ProjectPostService projectPostService;
+    private final ProjectApplicationService projectApplicationService;
 
     @Operation(summary = "모집글 목록 조회", description = "모집 중인 글 목록을 반환합니다.")
     @GetMapping
@@ -45,5 +47,14 @@ public class ProjectPostController {
         Long newPostId = projectPostService.createPost(studentId, request);
         PostCreateResponse data = new PostCreateResponse(newPostId, "모집글이 성공적으로 작성되었습니다.");
         return ResponseEntity.ok(ApiResponse.success("성공", data));
+    }
+
+    @Operation(summary = "모집글 지원", description = "모집글에 지원합니다. 작성자 본인은 지원할 수 없으며 중복 지원도 불가능합니다.")
+    @PostMapping("/{postId}/apply")
+    public ResponseEntity<ApiResponse<Long>> applyPost(
+            @PathVariable Long postId,
+            @RequestParam String studentId) {
+        Long applicationId = projectApplicationService.applyForProject(studentId, postId);
+        return ResponseEntity.ok(ApiResponse.success("지원 성공", applicationId));
     }
 }

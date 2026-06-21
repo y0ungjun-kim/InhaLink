@@ -64,6 +64,8 @@ export const api = {
     request("GET", `/posts/${postId}`),
   createPost: (studentId, body) =>
     request("POST", `/posts?studentId=${studentId}`, body),
+  applyPost: (postId, studentId) =>
+    request("POST", `/posts/${postId}/apply?studentId=${studentId}`),
 
   // 지원
   applyPost: (postId) =>
