@@ -20,8 +20,8 @@ public class EmailService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${resend.api-key}")
-    private String resendApiKey;
+    @Value("${sendgrid.api-key}")
+    private String sendgridApiKey;
 
     private static final String DOMAIN_AC_KR = "@inha.ac.kr";
     private static final String DOMAIN_EDU = "@inha.edu";
@@ -66,16 +66,16 @@ public class EmailService {
     private void sendEmail(String to, String code) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + resendApiKey);
+        headers.set("Authorization", "Bearer " + sendgridApiKey);
 
         Map<String, Object> body = Map.of(
-                "from", "InhaLink <onboarding@resend.dev>",
-                "to", List.of(to),
+                "personalizations", List.of(Map.of("to", List.of(Map.of("email", to)))),
+                "from", Map.of("email", "admininhalink@gmail.com", "name", "InhaLink"),
                 "subject", "[InhaLink] 이메일 인증 번호",
-                "text", "인증 번호는 [" + code + "] 입니다. 5분 이내에 입력해주세요."
+                "content", List.of(Map.of("type", "text/plain", "value", "인증 번호는 [" + code + "] 입니다. 5분 이내에 입력해주세요."))
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        restTemplate.postForEntity("https://api.resend.com/emails", request, String.class);
+        restTemplate.postForEntity("https://api.sendgrid.com/v3/mail/send", request, String.class);
     }
 }
