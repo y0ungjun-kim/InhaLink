@@ -1,4 +1,4 @@
-const BASE = "https://inhalink-production.up.railway.app/api";
+const BASE = "https://inhalink.onrender.com/api";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -33,12 +33,6 @@ async function request(method, path, body) {
 }
 
 export const api = {
-  // 이메일 인증
-  sendCode: (email) =>
-    request("POST", "/emails/send", { email }),
-  verifyCode: (email, verificationCode) =>
-    request("POST", "/emails/verify", { email, verificationCode }),
-
   // 회원가입 / 로그인
   signup: (body) =>
     request("POST", "/users/signup", body),

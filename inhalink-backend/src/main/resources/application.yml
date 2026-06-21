@@ -20,15 +20,8 @@ spring:
       hibernate:
         format_sql: true
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
 
 jwt:
   secret: ${JWT_SECRET:inhalink-jwt-secret-key-must-be-at-least-32-characters-long}
   expiration: ${JWT_EXPIRATION:86400000}
 
-sendgrid:
-  api-key: ${SENDGRID_API_KEY:}

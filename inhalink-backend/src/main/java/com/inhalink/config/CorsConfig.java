@@ -18,7 +18,8 @@ public class CorsConfig {
         config.setAllowedOrigins(List.of("http://localhost:3000",
                 "https://inha-link.vercel.app",
                 "https://inha-link-1.vercel.app",
-                "https://inhalink-production.up.railway.app"));
+                "https://inha-link-eight.vercel.app",
+                "https://inhalink.onrender.com"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
